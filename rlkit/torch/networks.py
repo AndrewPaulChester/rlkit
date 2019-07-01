@@ -19,6 +19,21 @@ def identity(x):
 
 
 class Mlp(nn.Module):
+    """
+    A class for defining a fully connected NN using pytorch.
+
+    :param hidden_sizes: sizes of each hidden layer
+    :param output_size: size of output layer
+    :param input_size: size of input layer
+    :param init_w: maximum absolute value of initial weights in output layer
+    :param hidden_activation: Activation function for hidden layers (default relu)
+    :param output_activation: Activation function for output layer (default none)
+    :param hidden_init: initialisation function for hidden layer weights
+    :param b_init_value: initial bias for hidden layer
+    :param layer_norm: flag to specify if hidden layers are normalised (default false)
+    :param layer_norm_kwargs: ???
+    :returns: initialised pytorch NN object
+    """
     def __init__(
             self,
             hidden_sizes,

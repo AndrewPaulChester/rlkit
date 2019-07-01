@@ -7,6 +7,29 @@ import numpy as np
 
 
 class CNN(nn.Module):
+    """
+    A class for defining a convolutional NN using pytorch. Has a sequence of convoltional 
+    layers followed by a sequence of fully connected layers.
+ 
+    :param input_width: width of input layer
+    :param input_height: height of input layer
+    :param input_channels: number of input layer channels
+    :param output_size: size of output layer
+    :param kernel_sizes: size of kernel in hidden layers (list for multiple layers)  
+    :param n_channels: number of channels in hidden layers (list for multiple layers)  
+    :param strides: strides in hidden layers (list for multiple layers)
+    :param paddings: padding in hidden layers (list for multiple layers)
+    :param hidden_sizes: sizes of each fc hidden layer (list for multiple layers)
+    :param added_fc_input_size: size of any additional input to be passed directly to first fc hidden layer (default 0)
+    :param batch_norm_conv: flag to specify if hidden conv layers are normalised (default false)
+    :param batch_norm_fc: flag to specify if hidden fc layers are normalised (default false)
+    :param init_w: maximum absolute value of initial weights in output layer
+    :param hidden_init: initialisation function for hidden layer weights
+    :param hidden_activation: Activation function for hidden layers (default relu)
+    :param output_activation: Activation function for output layer (default none)
+    :returns: initialised pytorch NN object
+    """
+
     def __init__(
             self,
             input_width,
