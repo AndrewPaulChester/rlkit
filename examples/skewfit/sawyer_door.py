@@ -2,7 +2,7 @@ import os.path as osp
 import multiworld.envs.mujoco as mwmj
 import rlkit.util.hyperparameter as hyp
 from multiworld.envs.mujoco.cameras import sawyer_door_env_camera_v0
-from rlkit.launchers.launcher_util import run_experiment
+from rlkit.launchers.launcher_util import run_experiment_here
 import rlkit.torch.vae.vae_schedules as vae_schedules
 from rlkit.launchers.skewfit_experiments import \
     skewfit_full_experiment
@@ -15,7 +15,7 @@ if __name__ == "__main__":
         double_algo=False,
         online_vae_exploration=False,
         imsize=48,
-        env_id='SawyerDoorHookResetFreeEnv-v1',
+        env_id='Point2D-Box-Wall-v1',
         init_camera=sawyer_door_env_camera_v0,
         skewfit_variant=dict(
             save_video=True,
@@ -126,11 +126,10 @@ if __name__ == "__main__":
 
     for exp_id, variant in enumerate(sweeper.iterate_hyperparameters()):
         for _ in range(n_seeds):
-            run_experiment(
+            run_experiment_here(
                 skewfit_full_experiment,
                 exp_prefix=exp_prefix,
-                mode=mode,
                 variant=variant,
-                use_gpu=True,
+                use_gpu=False,
           )
 

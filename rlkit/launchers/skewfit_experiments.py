@@ -194,7 +194,7 @@ def generate_vae_dataset(variant):
             save_file_prefix = env_id
         if save_file_prefix is None:
             save_file_prefix = env_class.__name__
-        filename = "/tmp/{}_N{}_{}_imsize{}_random_oracle_split_{}{}.npy".format(
+        filename = "{}_N{}_{}_imsize{}_random_oracle_split_{}{}.npy".format(
             save_file_prefix,
             str(N),
             init_camera.__name__ if init_camera else '',
