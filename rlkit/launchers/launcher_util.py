@@ -183,7 +183,7 @@ def create_log_dir(
         exp_id=0,
         seed=0,
         base_log_dir=None,
-        include_exp_prefix_sub_dir=True,
+        include_exp_prefix_sub_dir=False,
 ):
     """
     Creates and returns a unique log directory.
@@ -203,10 +203,10 @@ def create_log_dir(
         log_dir = osp.join(base_log_dir, exp_prefix.replace("_", "-"), exp_name)
     else:
         log_dir = osp.join(base_log_dir, exp_name)
-    if osp.exists(log_dir):
-        print("WARNING: Log directory already exists {}".format(log_dir))
-    os.makedirs(log_dir, exist_ok=True)
-    return log_dir
+    if osp.exists(base_log_dir):
+        print("WARNING: Log directory already exists {}".format(base_log_dir))
+    os.makedirs(base_log_dir, exist_ok=True)
+    return base_log_dir
 
 
 def setup_logger(
@@ -247,8 +247,8 @@ def setup_logger(
     :param script_name: If set, save the script name to this.
     :return:
     """
-    if git_infos is None:
-        git_infos = get_git_infos(conf.CODE_DIRS_TO_MOUNT)
+    # if git_infos is None:
+    #     git_infos = get_git_infos(conf.CODE_DIRS_TO_MOUNT)
     first_time = log_dir is None
     if first_time:
         log_dir = create_log_dir(exp_prefix, **create_log_dir_kwargs)
