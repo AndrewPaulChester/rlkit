@@ -115,7 +115,7 @@ class CNN(nn.Module):
         self.last_fc.bias.data.uniform_(-init_w, init_w)
 
     def forward(self, input):
-        print(input.shape)
+        #print(input.shape)
         fc_input = (self.added_fc_input_size != 0)
         input = input.reshape(input.shape[0],-1)
         conv_input = input.narrow(start=0,
