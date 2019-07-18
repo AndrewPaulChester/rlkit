@@ -16,6 +16,8 @@ import json
 import pickle
 import errno
 
+import baselines.logger
+
 from rlkit.core.tabulate import tabulate
 
 
@@ -90,6 +92,8 @@ class Logger(object):
         self._log_tabular_only = False
         self._header_printed = False
         self.table_printer = TerminalTablePrinter()
+
+        baselines.logger.configure(dir=os.getcwd(), format_strs=['tensorboard'])
 
     def reset(self):
         self.__init__()
@@ -259,6 +263,8 @@ class Logger(object):
                 for line in tabulate(self._tabular).split('\n'):
                     self.log(line, *args, **kwargs)
             tabular_dict = dict(self._tabular)
+            baselines.logger.logkvs(tabular_dict)
+            baselines.logger.dumpkvs()
             # Also write to the csv files
             # This assumes that the keys in each iteration won't change!
             for tabular_fd in list(self._tabular_fds.values()):
