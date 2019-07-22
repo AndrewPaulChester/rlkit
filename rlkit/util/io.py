@@ -4,12 +4,12 @@ import pickle
 
 import boto3
 
-from rlkit.launchers.conf import LOCAL_LOG_DIR#, AWS_S3_PATH
+from rlkit.launchers.conf import LOCAL_LOG_DIR  # , AWS_S3_PATH
 import os
 
-PICKLE = 'pickle'
-NUMPY = 'numpy'
-JOBLIB = 'joblib'
+PICKLE = "pickle"
+NUMPY = "numpy"
+JOBLIB = "joblib"
 
 
 def local_path_from_s3_or_local_path(filename):
@@ -56,17 +56,17 @@ def split_s3_full_path(s3_path):
     """
     Split "s3://foo/bar/baz" into "foo" and "bar/baz"
     """
-    bucket_name_and_directories = s3_path.split('//')[1]
-    bucket_name, *directories = bucket_name_and_directories.split('/')
-    directory_path = '/'.join(directories)
+    bucket_name_and_directories = s3_path.split("//")[1]
+    bucket_name, *directories = bucket_name_and_directories.split("/")
+    directory_path = "/".join(directories)
     return bucket_name, directory_path
 
 
 def load_local_or_remote_file(filepath, file_type=None):
     local_path = local_path_from_s3_or_local_path(filepath)
     if file_type is None:
-        extension = local_path.split('.')[-1]
-        if extension == 'npy':
+        extension = local_path.split(".")[-1]
+        if extension == "npy":
             file_type = NUMPY
         else:
             file_type = PICKLE

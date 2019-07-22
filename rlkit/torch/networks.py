@@ -34,18 +34,19 @@ class Mlp(nn.Module):
     :param layer_norm_kwargs: ???
     :returns: initialised pytorch NN object
     """
+
     def __init__(
-            self,
-            hidden_sizes,
-            output_size,
-            input_size,
-            init_w=3e-3,
-            hidden_activation=F.relu,
-            output_activation=identity,
-            hidden_init=ptu.fanin_init,
-            b_init_value=0.1,
-            layer_norm=False,
-            layer_norm_kwargs=None,
+        self,
+        hidden_sizes,
+        output_size,
+        input_size,
+        init_w=3e-3,
+        hidden_activation=F.relu,
+        output_activation=identity,
+        hidden_init=ptu.fanin_init,
+        b_init_value=0.1,
+        layer_norm=False,
+        layer_norm_kwargs=None,
     ):
         super().__init__()
 
@@ -108,12 +109,7 @@ class MlpPolicy(Mlp, Policy):
     A simpler interface for creating policies.
     """
 
-    def __init__(
-            self,
-            *args,
-            obs_normalizer: TorchFixedNormalizer = None,
-            **kwargs
-    ):
+    def __init__(self, *args, obs_normalizer: TorchFixedNormalizer = None, **kwargs):
         super().__init__(*args, **kwargs)
         self.obs_normalizer = obs_normalizer
 
@@ -134,5 +130,6 @@ class TanhMlpPolicy(MlpPolicy):
     """
     A helper class since most policies have a tanh output activation.
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, output_activation=torch.tanh, **kwargs)

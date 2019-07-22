@@ -7,10 +7,7 @@ from rlkit.torch import pytorch_util as ptu
 
 
 class VAEBase(torch.nn.Module, metaclass=abc.ABCMeta):
-    def __init__(
-            self,
-            representation_size,
-    ):
+    def __init__(self, representation_size):
         super().__init__()
         self.representation_size = representation_size
 
@@ -86,10 +83,7 @@ class VAEBase(torch.nn.Module, metaclass=abc.ABCMeta):
 
 
 class GaussianLatentVAE(VAEBase):
-    def __init__(
-            self,
-            representation_size,
-    ):
+    def __init__(self, representation_size):
         super().__init__(representation_size)
         self.dist_mu = np.zeros(self.representation_size)
         self.dist_std = np.ones(self.representation_size)
@@ -109,7 +103,7 @@ class GaussianLatentVAE(VAEBase):
 
     def kl_divergence(self, latent_distribution_params):
         mu, logvar = latent_distribution_params
-        return - 0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), dim=1).mean()
+        return -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), dim=1).mean()
 
     def get_encoding_from_latent_distribution_params(self, latent_distribution_params):
         return latent_distribution_params[0].cpu()
@@ -117,9 +111,7 @@ class GaussianLatentVAE(VAEBase):
 
 def compute_bernoulli_log_prob(x, reconstruction_of_x):
     return -1 * F.binary_cross_entropy(
-        reconstruction_of_x,
-        x,
-        reduction='elementwise_mean'
+        reconstruction_of_x, x, reduction="elementwise_mean"
     )
 
 

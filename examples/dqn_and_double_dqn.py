@@ -5,8 +5,7 @@ Run DQN on grid world.
 import gym
 from torch import nn as nn
 
-from rlkit.exploration_strategies.base import \
-    PolicyWrappedWithExplorationStrategy
+from rlkit.exploration_strategies.base import PolicyWrappedWithExplorationStrategy
 from rlkit.exploration_strategies.epsilon_greedy import EpsilonGreedy
 from rlkit.policies.argmax import ArgmaxDiscretePolicy
 from rlkit.torch.dqn.dqn import DQNTrainer
@@ -19,45 +18,27 @@ from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 
 
 def experiment(variant):
-    expl_env = gym.make('CartPole-v0')
-    eval_env = gym.make('CartPole-v0')
+    expl_env = gym.make("CartPole-v0")
+    eval_env = gym.make("CartPole-v0")
     obs_dim = expl_env.observation_space.low.size
     action_dim = eval_env.action_space.n
 
-    qf = Mlp(
-        hidden_sizes=[32, 32],
-        input_size=obs_dim,
-        output_size=action_dim,
-    )
-    target_qf = Mlp(
-        hidden_sizes=[32, 32],
-        input_size=obs_dim,
-        output_size=action_dim,
-    )
+    qf = Mlp(hidden_sizes=[32, 32], input_size=obs_dim, output_size=action_dim)
+    target_qf = Mlp(hidden_sizes=[32, 32], input_size=obs_dim, output_size=action_dim)
     qf_criterion = nn.MSELoss()
     eval_policy = ArgmaxDiscretePolicy(qf)
     expl_policy = PolicyWrappedWithExplorationStrategy(
-        EpsilonGreedy(expl_env.action_space),
-        eval_policy,
+        EpsilonGreedy(expl_env.action_space), eval_policy
     )
-    eval_path_collector = MdpPathCollector(
-        eval_env,
-        eval_policy,
-    )
-    expl_path_collector = MdpPathCollector(
-        expl_env,
-        expl_policy,
-    )
+    eval_path_collector = MdpPathCollector(eval_env, eval_policy)
+    expl_path_collector = MdpPathCollector(expl_env, expl_policy)
     trainer = DQNTrainer(
         qf=qf,
         target_qf=target_qf,
         qf_criterion=qf_criterion,
-        **variant['trainer_kwargs']
+        **variant["trainer_kwargs"]
     )
-    replay_buffer = EnvReplayBuffer(
-        variant['replay_buffer_size'],
-        expl_env,
-    )
+    replay_buffer = EnvReplayBuffer(variant["replay_buffer_size"], expl_env)
     algorithm = TorchBatchRLAlgorithm(
         trainer=trainer,
         exploration_env=expl_env,
@@ -65,12 +46,10 @@ def experiment(variant):
         exploration_data_collector=expl_path_collector,
         evaluation_data_collector=eval_path_collector,
         replay_buffer=replay_buffer,
-        **variant['algorithm_kwargs']
+        **variant["algorithm_kwargs"]
     )
     algorithm.to(ptu.device)
     algorithm.train()
-
-
 
 
 if __name__ == "__main__":
@@ -79,7 +58,7 @@ if __name__ == "__main__":
         algorithm="SAC",
         version="normal",
         layer_size=256,
-        replay_buffer_size=int(1E6),
+        replay_buffer_size=int(1e6),
         algorithm_kwargs=dict(
             num_epochs=3000,
             num_eval_steps_per_epoch=5000,
@@ -89,11 +68,8 @@ if __name__ == "__main__":
             max_path_length=1000,
             batch_size=256,
         ),
-        trainer_kwargs=dict(
-            discount=0.99,
-            learning_rate=3E-4,
-        ),
+        trainer_kwargs=dict(discount=0.99, learning_rate=3e-4),
     )
-    setup_logger('name-of-experiment', variant=variant)
+    setup_logger("name-of-experiment", variant=variant)
     # ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
     experiment(variant)

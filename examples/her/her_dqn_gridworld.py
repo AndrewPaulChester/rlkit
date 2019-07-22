@@ -8,8 +8,7 @@ import gym
 
 import rlkit.torch.pytorch_util as ptu
 from rlkit.data_management.obs_dict_replay_buffer import ObsDictRelabelingBuffer
-from rlkit.exploration_strategies.base import \
-    PolicyWrappedWithExplorationStrategy
+from rlkit.exploration_strategies.base import PolicyWrappedWithExplorationStrategy
 from rlkit.exploration_strategies.epsilon_greedy import EpsilonGreedy
 from rlkit.launchers.launcher_util import setup_logger
 from rlkit.samplers.data_collector import GoalConditionedPathCollector
@@ -23,43 +22,37 @@ from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 try:
     import multiworld.envs.gridworlds
 except ImportError as e:
-    print("To run this example, you need to install `multiworld`. See "
-          "https://github.com/vitchyr/multiworld.")
+    print(
+        "To run this example, you need to install `multiworld`. See "
+        "https://github.com/vitchyr/multiworld."
+    )
     raise e
 
 
 def experiment(variant):
-    expl_env = gym.make('GoalGridworld-v0')
-    eval_env = gym.make('GoalGridworld-v0')
+    expl_env = gym.make("GoalGridworld-v0")
+    eval_env = gym.make("GoalGridworld-v0")
 
-    obs_dim = expl_env.observation_space.spaces['observation'].low.size
-    goal_dim = expl_env.observation_space.spaces['desired_goal'].low.size
+    obs_dim = expl_env.observation_space.spaces["observation"].low.size
+    goal_dim = expl_env.observation_space.spaces["desired_goal"].low.size
     action_dim = expl_env.action_space.n
     qf = FlattenMlp(
-        input_size=obs_dim + goal_dim,
-        output_size=action_dim,
-        hidden_sizes=[400, 300],
+        input_size=obs_dim + goal_dim, output_size=action_dim, hidden_sizes=[400, 300]
     )
     target_qf = FlattenMlp(
-        input_size=obs_dim + goal_dim,
-        output_size=action_dim,
-        hidden_sizes=[400, 300],
+        input_size=obs_dim + goal_dim, output_size=action_dim, hidden_sizes=[400, 300]
     )
     eval_policy = ArgmaxDiscretePolicy(qf)
-    exploration_strategy = EpsilonGreedy(
-        action_space=expl_env.action_space,
-    )
+    exploration_strategy = EpsilonGreedy(action_space=expl_env.action_space)
     expl_policy = PolicyWrappedWithExplorationStrategy(
-        exploration_strategy=exploration_strategy,
-        policy=eval_policy,
+        exploration_strategy=exploration_strategy, policy=eval_policy
     )
 
     replay_buffer = ObsDictRelabelingBuffer(
-        env=eval_env,
-        **variant['replay_buffer_kwargs']
+        env=eval_env, **variant["replay_buffer_kwargs"]
     )
-    observation_key = 'observation'
-    desired_goal_key = 'desired_goal'
+    observation_key = "observation"
+    desired_goal_key = "desired_goal"
     eval_path_collector = GoalConditionedPathCollector(
         eval_env,
         eval_policy,
@@ -72,11 +65,7 @@ def experiment(variant):
         observation_key=observation_key,
         desired_goal_key=desired_goal_key,
     )
-    trainer = DQNTrainer(
-        qf=qf,
-        target_qf=target_qf,
-        **variant['trainer_kwargs']
-    )
+    trainer = DQNTrainer(qf=qf, target_qf=target_qf, **variant["trainer_kwargs"])
     trainer = HERTrainer(trainer)
     algorithm = TorchBatchRLAlgorithm(
         trainer=trainer,
@@ -85,7 +74,7 @@ def experiment(variant):
         exploration_data_collector=expl_path_collector,
         evaluation_data_collector=eval_path_collector,
         replay_buffer=replay_buffer,
-        **variant['algo_kwargs']
+        **variant["algo_kwargs"]
     )
     algorithm.to(ptu.device)
     algorithm.train()
@@ -102,14 +91,12 @@ if __name__ == "__main__":
             min_num_steps_before_training=1000,
             batch_size=128,
         ),
-        trainer_kwargs=dict(
-            discount=0.99,
-        ),
+        trainer_kwargs=dict(discount=0.99),
         replay_buffer_kwargs=dict(
             max_size=100000,
             fraction_goals_rollout_goals=0.2,  # equal to k = 4 in HER paper
             fraction_goals_env_goals=0.0,
         ),
     )
-    setup_logger('her-dqn-gridworld-experiment', variant=variant)
+    setup_logger("her-dqn-gridworld-experiment", variant=variant)
     experiment(variant)

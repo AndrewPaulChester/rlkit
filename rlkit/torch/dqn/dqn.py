@@ -12,16 +12,15 @@ from rlkit.torch.torch_rl_algorithm import TorchTrainer
 
 class DQNTrainer(TorchTrainer):
     def __init__(
-            self,
-            qf,
-            target_qf,
-            learning_rate=1e-3,
-            soft_target_tau=1e-3,
-            target_update_period=1,
-            qf_criterion=None,
-
-            discount=0.99,
-            reward_scale=1.0,
+        self,
+        qf,
+        target_qf,
+        learning_rate=1e-3,
+        soft_target_tau=1e-3,
+        target_update_period=1,
+        qf_criterion=None,
+        discount=0.99,
+        reward_scale=1.0,
     ):
         super().__init__()
         self.qf = qf
@@ -29,10 +28,7 @@ class DQNTrainer(TorchTrainer):
         self.learning_rate = learning_rate
         self.soft_target_tau = soft_target_tau
         self.target_update_period = target_update_period
-        self.qf_optimizer = optim.Adam(
-            self.qf.parameters(),
-            lr=self.learning_rate,
-        )
+        self.qf_optimizer = optim.Adam(self.qf.parameters(), lr=self.learning_rate)
         self.discount = discount
         self.reward_scale = reward_scale
         self.qf_criterion = qf_criterion or nn.MSELoss()
@@ -41,20 +37,18 @@ class DQNTrainer(TorchTrainer):
         self._need_to_update_eval_statistics = True
 
     def train_from_torch(self, batch):
-        rewards = batch['rewards'] * self.reward_scale
-        terminals = batch['terminals']
-        obs = batch['observations']
-        actions = batch['actions']
-        next_obs = batch['next_observations']
+        rewards = batch["rewards"] * self.reward_scale
+        terminals = batch["terminals"]
+        obs = batch["observations"]
+        actions = batch["actions"]
+        next_obs = batch["next_observations"]
 
         """
         Compute loss
         """
 
-        target_q_values = self.target_qf(next_obs).detach().max(
-            1, keepdim=True
-        )[0]
-        y_target = rewards + (1. - terminals) * self.discount * target_q_values
+        target_q_values = self.target_qf(next_obs).detach().max(1, keepdim=True)[0]
+        y_target = rewards + (1.0 - terminals) * self.discount * target_q_values
         y_target = y_target.detach()
         # actions is a one-hot vector
         y_pred = torch.sum(self.qf(obs) * actions, dim=1, keepdim=True)
@@ -71,20 +65,17 @@ class DQNTrainer(TorchTrainer):
         Soft Updates
         """
         if self._n_train_steps_total % self.target_update_period == 0:
-            ptu.soft_update_from_to(
-                self.qf, self.target_qf, self.soft_target_tau
-            )
+            ptu.soft_update_from_to(self.qf, self.target_qf, self.soft_target_tau)
 
         """
         Save some statistics for eval using just one batch.
         """
         if self._need_to_update_eval_statistics:
             self._need_to_update_eval_statistics = False
-            self.eval_statistics['QF Loss'] = np.mean(ptu.get_numpy(qf_loss))
-            self.eval_statistics.update(create_stats_ordered_dict(
-                'Y Predictions',
-                ptu.get_numpy(y_pred),
-            ))
+            self.eval_statistics["QF Loss"] = np.mean(ptu.get_numpy(qf_loss))
+            self.eval_statistics.update(
+                create_stats_ordered_dict("Y Predictions", ptu.get_numpy(y_pred))
+            )
 
     def get_diagnostics(self):
         return self.eval_statistics
@@ -94,13 +85,7 @@ class DQNTrainer(TorchTrainer):
 
     @property
     def networks(self):
-        return [
-            self.qf,
-            self.target_qf,
-        ]
+        return [self.qf, self.target_qf]
 
     def get_snapshot(self):
-        return dict(
-            qf=self.qf,
-            target_qf=self.target_qf,
-        )
+        return dict(qf=self.qf, target_qf=self.target_qf)

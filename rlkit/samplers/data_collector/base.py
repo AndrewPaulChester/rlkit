@@ -18,21 +18,11 @@ class DataCollector(object, metaclass=abc.ABCMeta):
 
 class PathCollector(DataCollector, metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def collect_new_paths(
-            self,
-            max_path_length,
-            num_steps,
-            discard_incomplete_paths,
-    ):
+    def collect_new_paths(self, max_path_length, num_steps, discard_incomplete_paths):
         pass
 
 
 class StepCollector(DataCollector, metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def collect_new_steps(
-            self,
-            max_path_length,
-            num_steps,
-            discard_incomplete_paths,
-    ):
+    def collect_new_steps(self, max_path_length, num_steps, discard_incomplete_paths):
         pass
