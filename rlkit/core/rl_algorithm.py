@@ -98,12 +98,17 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
         logger.record_dict(
             self.expl_data_collector.get_diagnostics(), prefix="exploration/"
         )
+
         expl_paths = self.expl_data_collector.get_epoch_paths()
         if hasattr(self.expl_env, "get_diagnostics"):
             logger.record_dict(
                 self.expl_env.get_diagnostics(expl_paths), prefix="exploration/"
             )
-        logger.record_dict(eval_util.get_generic_path_information(expl_paths), prefix="exploration/")
+        if expl_paths:
+            logger.record_dict(
+                eval_util.get_generic_path_information(expl_paths),
+                prefix="exploration/",
+            )
         """
         Evaluation
         """
@@ -115,14 +120,15 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
             logger.record_dict(
                 self.eval_env.get_diagnostics(eval_paths), prefix="evaluation/"
             )
-        logger.record_dict(
-            eval_util.get_generic_path_information(eval_paths), prefix="evaluation/"
-        )
+        if eval_paths:
+            logger.record_dict(
+                eval_util.get_generic_path_information(eval_paths), prefix="evaluation/"
+            )
 
         """
         Misc
         """
-        gt.stamp("logging")
+        gt.stamp("logging", unique=False)
         logger.record_dict(_get_epoch_timings())
         logger.record_tabular("Epoch", epoch)
         logger.dump_tabular(with_prefix=False, with_timestamp=False)
