@@ -14,8 +14,8 @@ class EpsilonGreedy(RawExplorationStrategy):
 
     def get_action_from_raw_action(self, action, **kwargs):
         if random.random() <= self.prob_random_action:
-            return self.action_space.sample()
-        return action
+            return self.action_space.sample(), True
+        return action, False
 
 
 class AnnealedEpsilonGreedy(RawExplorationStrategy):
@@ -34,11 +34,12 @@ class AnnealedEpsilonGreedy(RawExplorationStrategy):
         self.action_space = action_space
         self.min_prob_random_action = min_prob_random_action
         self.anneal_rate = anneal_rate
+        print(self.anneal_rate)
 
     def get_action_from_raw_action(self, action, **kwargs):
-        if random.random() <= self.prob_random_action:
-            return self.action_space.sample()
         self.prob_random_action = max(
             self.min_prob_random_action, self.prob_random_action * self.anneal_rate
         )
-        return action
+        if random.random() <= self.prob_random_action:
+            return self.action_space.sample(), True
+        return action, False

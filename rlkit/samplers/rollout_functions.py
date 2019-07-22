@@ -2,15 +2,15 @@ import numpy as np
 
 
 def multitask_rollout(
-        env,
-        agent,
-        max_path_length=np.inf,
-        render=False,
-        render_kwargs=None,
-        observation_key=None,
-        desired_goal_key=None,
-        get_action_kwargs=None,
-        return_dict_obs=False,
+    env,
+    agent,
+    max_path_length=np.inf,
+    render=False,
+    render_kwargs=None,
+    observation_key=None,
+    desired_goal_key=None,
+    get_action_kwargs=None,
+    return_dict_obs=False,
 ):
     if render_kwargs is None:
         render_kwargs = {}
@@ -73,13 +73,7 @@ def multitask_rollout(
     )
 
 
-def rollout(
-        env,
-        agent,
-        max_path_length=np.inf,
-        render=False,
-        render_kwargs=None,
-):
+def rollout(env, agent, max_path_length=np.inf, render=False, render_kwargs=None):
     """
     The following value for the following keys will be a 2D array, with the
     first dimension corresponding to the time dimension.
@@ -98,6 +92,7 @@ def rollout(
         render_kwargs = {}
     observations = []
     actions = []
+    explored = []
     rewards = []
     terminals = []
     agent_infos = []
@@ -109,12 +104,13 @@ def rollout(
     if render:
         env.render(**render_kwargs)
     while path_length < max_path_length:
-        a, agent_info = agent.get_action(o)
+        (a, e), agent_info = agent.get_action(o)
         next_o, r, d, env_info = env.step(a)
         observations.append(o)
         rewards.append(r)
         terminals.append(d)
         actions.append(a)
+        explored.append(e)
         agent_infos.append(agent_info)
         env_infos.append(env_info)
         path_length += 1
@@ -131,15 +127,11 @@ def rollout(
     if len(observations.shape) == 1:
         observations = np.expand_dims(observations, 1)
         next_o = np.array([next_o])
-    next_observations = np.vstack(
-        (
-            observations[1:, :],
-            np.expand_dims(next_o, 0)
-        )
-    )
+    next_observations = np.vstack((observations[1:, :], np.expand_dims(next_o, 0)))
     return dict(
         observations=observations,
         actions=actions,
+        explored=np.array(explored).reshape(-1, 1),
         rewards=np.array(rewards).reshape(-1, 1),
         next_observations=next_observations,
         terminals=np.array(terminals).reshape(-1, 1),

@@ -7,8 +7,9 @@ class ReplayBuffer(object, metaclass=abc.ABCMeta):
     """
 
     @abc.abstractmethod
-    def add_sample(self, observation, action, reward, next_observation,
-                   terminal, **kwargs):
+    def add_sample(
+        self, observation, action, reward, next_observation, terminal, **kwargs
+    ):
         """
         Add a transition tuple.
         """
@@ -42,26 +43,25 @@ class ReplayBuffer(object, metaclass=abc.ABCMeta):
 
         :param path: Dict like one outputted by rlkit.samplers.util.rollout
         """
-        for i, (
-                obs,
-                action,
-                reward,
-                next_obs,
-                terminal,
-                agent_info,
-                env_info
-        ) in enumerate(zip(
-            path["observations"],
-            path["actions"],
-            path["rewards"],
-            path["next_observations"],
-            path["terminals"],
-            path["agent_infos"],
-            path["env_infos"],
-        )):
+        for (
+            i,
+            (obs, action, explored, reward, next_obs, terminal, agent_info, env_info),
+        ) in enumerate(
+            zip(
+                path["observations"],
+                path["actions"],
+                path["explored"],
+                path["rewards"],
+                path["next_observations"],
+                path["terminals"],
+                path["agent_infos"],
+                path["env_infos"],
+            )
+        ):
             self.add_sample(
                 observation=obs,
                 action=action,
+                explored=explored,
                 reward=reward,
                 next_observation=next_obs,
                 terminal=terminal,

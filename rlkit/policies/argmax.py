@@ -18,4 +18,4 @@ class ArgmaxDiscretePolicy(nn.Module, Policy):
         obs = ptu.from_numpy(obs).float()
         q_values = self.qf(obs).squeeze(0)
         q_values_np = ptu.get_numpy(q_values)
-        return q_values_np.argmax(), {}
+        return (q_values_np.argmax(), False), {}

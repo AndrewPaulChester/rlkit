@@ -24,6 +24,7 @@ class SimpleReplayBuffer(ReplayBuffer):
         self._actions = np.zeros((max_replay_buffer_size, action_dim), dtype="uint8")
         # Make everything a 2D np array to make it easier for other code to
         # reason about the shape of the data
+        self._explored = np.zeros((max_replay_buffer_size, 1), dtype="uint8")
         self._rewards = np.zeros((max_replay_buffer_size, 1))
         # self._terminals[i] = a terminal was received at time i
         self._terminals = np.zeros((max_replay_buffer_size, 1), dtype="uint8")
@@ -41,6 +42,7 @@ class SimpleReplayBuffer(ReplayBuffer):
         self,
         observation,
         action,
+        explored,
         reward,
         next_observation,
         terminal,
@@ -49,6 +51,7 @@ class SimpleReplayBuffer(ReplayBuffer):
     ):
         self._observations[self._top] = observation.reshape(-1)
         self._actions[self._top] = action
+        self._explored[self._top] = explored
         self._rewards[self._top] = reward
         self._terminals[self._top] = terminal
         self._next_obs[self._top] = next_observation.reshape(-1)
@@ -70,6 +73,7 @@ class SimpleReplayBuffer(ReplayBuffer):
         batch = dict(
             observations=self._observations[indices],
             actions=self._actions[indices],
+            explored=self._explored[indices],
             rewards=self._rewards[indices],
             terminals=self._terminals[indices],
             next_observations=self._next_obs[indices],

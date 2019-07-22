@@ -10,4 +10,4 @@ class RandomPolicy(Policy):
         self.action_space = action_space
 
     def get_action(self, obs):
-        return self.action_space.sample(), {}
+        return (self.action_space.sample(), True), {}

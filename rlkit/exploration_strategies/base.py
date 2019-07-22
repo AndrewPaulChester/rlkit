@@ -18,7 +18,7 @@ class RawExplorationStrategy(ExplorationStrategy, metaclass=abc.ABCMeta):
         pass
 
     def get_action(self, t, policy, *args, **kwargs):
-        action, agent_info = policy.get_action(*args, **kwargs)
+        (action, _), agent_info = policy.get_action(*args, **kwargs)
         return self.get_action_from_raw_action(action, t=t), agent_info
 
     def reset(self):
@@ -26,11 +26,7 @@ class RawExplorationStrategy(ExplorationStrategy, metaclass=abc.ABCMeta):
 
 
 class PolicyWrappedWithExplorationStrategy(ExplorationPolicy):
-    def __init__(
-            self,
-            exploration_strategy: ExplorationStrategy,
-            policy,
-    ):
+    def __init__(self, exploration_strategy: ExplorationStrategy, policy):
         self.es = exploration_strategy
         self.policy = policy
         self.t = 0
