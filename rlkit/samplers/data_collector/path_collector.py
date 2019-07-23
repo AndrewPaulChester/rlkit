@@ -1,7 +1,7 @@
 from collections import deque, OrderedDict
 
 from rlkit.core.eval_util import create_stats_ordered_dict
-from rlkit.samplers.rollout_functions import rollout, multitask_rollout
+from rlkit.samplers import rollout_functions
 from rlkit.samplers.data_collector.base import PathCollector
 
 
@@ -13,6 +13,7 @@ class MdpPathCollector(PathCollector):
         max_num_epoch_paths_saved=None,
         render=False,
         render_kwargs=None,
+        rollout=rollout_functions.rollout,
     ):
         if render_kwargs is None:
             render_kwargs = {}
@@ -22,6 +23,7 @@ class MdpPathCollector(PathCollector):
         self._epoch_paths = deque(maxlen=self._max_num_epoch_paths_saved)
         self._render = render
         self._render_kwargs = render_kwargs
+        self._rollout = rollout
 
         self._num_steps_total = 0
         self._num_paths_total = 0
@@ -33,7 +35,7 @@ class MdpPathCollector(PathCollector):
             max_path_length_this_loop = min(  # Do not go over num_steps
                 max_path_length, num_steps - num_steps_collected
             )
-            path = rollout(
+            path = self._rollout(
                 self._env, self._policy, max_path_length=max_path_length_this_loop
             )
             path_len = len(path["actions"])
