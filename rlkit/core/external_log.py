@@ -5,6 +5,7 @@ from rlkit.core.rl_algorithm import BaseRLAlgorithm
 from rlkit.core.trainer import Trainer
 from rlkit.data_management.replay_buffer import ReplayBuffer
 from rlkit.samplers.data_collector import PathCollector, MdpPathCollector
+import rlkit.pythonplusplus as ppp
 
 
 class StubTrainer(Trainer):
@@ -42,23 +43,36 @@ class LogPathCollector(MdpPathCollector):
         self.actions = [[] for _ in range(num_processes)]
         self.explored = [[] for _ in range(num_processes)]
         self.rewards = [[] for _ in range(num_processes)]
+        self.values = [[] for _ in range(num_processes)]
+        self.probs = [[] for _ in range(num_processes)]
 
-    def add_step(self, actions, action_log_probs, rewards, done):
+    def add_step(self, actions, action_log_probs, rewards, done, value):
 
         actions = actions.cpu().squeeze(1).numpy()
         rewards = rewards.cpu().squeeze(1).numpy()
-        explored = action_log_probs.cpu().squeeze(1).numpy() < math.log(0.5)
+        probs = np.power(math.e, action_log_probs.cpu().squeeze(1).numpy())
+        explored = probs < 0.5
         paths = []
+        values = value.cpu().squeeze(1).numpy()
 
         for i in range(len(actions)):
             self.actions[i].append(actions[i])
             self.rewards[i].append(rewards[i])
             self.explored[i].append(explored[i])
+            self.values[i].append(values[i])
+            self.probs[i].append(probs[i])
 
             if done[i]:
                 acts = np.array(self.actions[i])
                 if len(acts.shape) == 1:
                     acts = np.expand_dims(acts, 1)
+                ai = ppp.dict_of_list__to__list_of_dicts(
+                    {
+                        "values": np.array(self.values[i]).reshape(-1, 1),
+                        "probs": np.array(self.probs[i]).reshape(-1, 1),
+                    },
+                    len(np.array(self.values[i]).reshape(-1, 1)),
+                )
                 paths.append(
                     dict(
                         observations={},
@@ -67,13 +81,15 @@ class LogPathCollector(MdpPathCollector):
                         rewards=np.array(self.rewards[i]).reshape(-1, 1),
                         next_observations={},
                         terminals={},
-                        agent_infos={},
+                        agent_infos=ai,
                         env_infos={},
                     )
                 )
                 self.actions[i] = []
                 self.explored[i] = []
                 self.rewards[i] = []
+                self.values[i] = []
+                self.probs[i] = []
 
         if paths:
             self._epoch_paths.extend(paths)
