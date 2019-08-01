@@ -15,6 +15,7 @@ from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.launchers.launcher_util import setup_logger
 from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
+from a2c_ppo_acktr.envs import TransposeImage
 
 
 def experiment(variant):
@@ -23,13 +24,18 @@ def experiment(variant):
 
     expl_env = gym.make(variant["env_name"])
     eval_env = gym.make(variant["env_name"])
-    obs_dim = expl_env.observation_space.shape[1]
-    channels = expl_env.observation_space.shape[0]
+    obs_shape = expl_env.observation_space.shape
+    if len(obs_shape) == 3 and obs_shape[2] in [1, 3]:  # convert WxHxC into CxWxH
+        expl_env = TransposeImage(expl_env, op=[2, 0, 1])
+        eval_env = TransposeImage(eval_env, op=[2, 0, 1])
+
+    obs_shape = expl_env.observation_space.shape
+    channels, obs_width, obs_height = obs_shape
     action_dim = eval_env.action_space.n
 
     qf = CNN(
-        input_width=obs_dim,
-        input_height=obs_dim,
+        input_width=obs_width,
+        input_height=obs_height,
         input_channels=channels,
         output_size=action_dim,
         kernel_sizes=[8, 4],
@@ -39,8 +45,8 @@ def experiment(variant):
         hidden_sizes=[256],
     )
     target_qf = CNN(
-        input_width=obs_dim,
-        input_height=obs_dim,
+        input_width=obs_width,
+        input_height=obs_height,
         input_channels=channels,
         output_size=action_dim,
         kernel_sizes=[8, 4],
