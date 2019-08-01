@@ -70,6 +70,18 @@ def get_generic_path_information(paths, stat_prefix=""):
     return statistics
 
 
+def get_action_histograms(paths, stat_prefix=""):
+    """
+    Get an OrderedDict with a bunch of statistic names and values.
+    """
+    statistics = OrderedDict()
+    actions = np.concatenate([p["actions"].squeeze(1) for p in paths])
+    probs = np.concatenate([ai["probs"] for p in paths for ai in p["agent_infos"]])
+    for a in set(actions):
+        statistics[str(a)] = probs[actions == a]
+    return statistics
+
+
 def get_average_returns(paths):
     returns = [sum(path["rewards"]) for path in paths]
     return np.mean(returns)

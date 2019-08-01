@@ -15,9 +15,9 @@ def _get_epoch_timings():
     for key in sorted(times_itrs):
         time = times_itrs[key][-1]
         epoch_time += time
-        times["time/{} (s)".format(key)] = time
-    times["time/epoch (s)"] = epoch_time
-    times["time/total (s)"] = gt.get_times().total
+        times["time/{} s".format(key)] = time
+    times["time/epoch s"] = epoch_time
+    times["time/total s"] = gt.get_times().total
     return times
 
 
@@ -109,6 +109,9 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
                 eval_util.get_generic_path_information(expl_paths),
                 prefix="exploration/",
             )
+            logger.record_histogram_dict(
+                eval_util.get_action_histograms(expl_paths), prefix="exploration/"
+            )
         """
         Evaluation
         """
@@ -131,7 +134,7 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
         gt.stamp("logging", unique=False)
         logger.record_dict(_get_epoch_timings())
         logger.record_tabular("Epoch", epoch)
-        logger.dump_tabular(with_prefix=False, with_timestamp=False)
+        logger.dump_tabular(with_prefix=False, with_timestamp=False, epoch=epoch)
 
     @abc.abstractmethod
     def training_mode(self, mode):

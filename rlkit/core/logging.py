@@ -16,7 +16,7 @@ import json
 import pickle
 import errno
 
-import baselines.logger
+from torch.utils.tensorboard import SummaryWriter
 
 from rlkit.core.tabulate import tabulate
 
@@ -74,6 +74,7 @@ class Logger(object):
         self._tabular_prefix_str = ""
 
         self._tabular = []
+        self._histogram = []
 
         self._text_outputs = []
         self._tabular_outputs = []
@@ -90,7 +91,7 @@ class Logger(object):
         self._header_printed = False
         self.table_printer = TerminalTablePrinter()
 
-        baselines.logger.configure(dir=os.getcwd(), format_strs=["tensorboard"])
+        self.tb_logger = SummaryWriter("tb")
 
     def reset(self):
         self.__init__()
@@ -180,6 +181,17 @@ class Logger(object):
         if prefix is not None:
             self.pop_tabular_prefix()
 
+    def record_histogram_dict(self, d, prefix=None):
+        if prefix is not None:
+            self.push_tabular_prefix(prefix)
+        for k, v in d.items():
+            self.record_histogram(k, v)
+        if prefix is not None:
+            self.pop_tabular_prefix()
+
+    def record_histogram(self, key, val):
+        self._histogram.append((self._tabular_prefix_str + str(key), val))
+
     def push_tabular_prefix(self, key):
         self._tabular_prefixes.append(key)
         self._tabular_prefix_str = "".join(self._tabular_prefixes)
@@ -252,15 +264,18 @@ class Logger(object):
 
     def dump_tabular(self, *args, **kwargs):
         wh = kwargs.pop("write_header", None)
+        epoch = kwargs.pop("epoch", None)
         if len(self._tabular) > 0:
+            # write to tensorboard
+            tabular_dict = dict(self._tabular)
+            self.tb_logkvs(tabular_dict, epoch)
+            self.tb_loghistogram(self._histogram, epoch)
+
             if self._log_tabular_only:
                 self.table_printer.print_tabular(self._tabular)
             else:
                 for line in tabulate(self._tabular).split("\n"):
                     self.log(line, *args, **kwargs)
-            tabular_dict = dict(self._tabular)
-            baselines.logger.logkvs(tabular_dict)
-            baselines.logger.dumpkvs()
             # Also write to the csv files
             # This assumes that the keys in each iteration won't change!
             for tabular_fd in list(self._tabular_fds.values()):
@@ -275,6 +290,15 @@ class Logger(object):
                 writer.writerow(tabular_dict)
                 tabular_fd.flush()
             del self._tabular[:]
+            del self._histogram[:]
+
+    def tb_logkvs(self, tabular_dict, epoch):
+        for (k, v) in tabular_dict.items():
+            self.tb_logger.add_scalar(k.replace(" ", "_"), float(v), epoch)
+
+    def tb_loghistogram(self, hist_list, epoch):
+        for (k, v) in hist_list:
+            self.tb_logger.add_histogram(k.replace(" ", "_"), v, epoch)
 
     def pop_prefix(self,):
         del self._prefixes[-1]
