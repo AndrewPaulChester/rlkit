@@ -74,7 +74,7 @@ def get_action_histograms(paths, stat_prefix=""):
     """
     Get an OrderedDict with a bunch of statistic names and values.
     """
-    if "probs" not in paths[0]["agent_infos"]:
+    if "probs" not in paths[0]["agent_infos"][0]:
         return {}  # early exit for algos with no probabilities
     statistics = OrderedDict()
     actions = np.concatenate([p["actions"].squeeze(1) for p in paths])
