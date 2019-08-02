@@ -23,6 +23,17 @@
             ],
         },
         {
+            "name": "Python: Current File (large-taxi)",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "--env-name",
+                "large-taxi-v1"
+            ],
+        },
+        {
             "name": "Python: Remote Attach",
             "type": "python",
             "request": "attach",
