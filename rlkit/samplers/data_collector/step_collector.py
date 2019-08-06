@@ -62,7 +62,7 @@ class MdpStepCollector(StepCollector):
         if self._obs is None:
             self._start_new_rollout()
 
-        action, agent_info = self._policy.get_action(self._obs)
+        (action, explored), agent_info = self._policy.get_action(self._obs)
         next_ob, reward, terminal, env_info = self._env.step(action)
         if self._render:
             self._env.render(**self._render_kwargs)
