@@ -1,5 +1,6 @@
 import gym
 from torch import nn as nn
+import os
 
 
 from rlkit.exploration_strategies.base import PolicyWrappedWithExplorationStrategy
@@ -15,6 +16,7 @@ from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.launchers.launcher_util import setup_logger
 from rlkit.samplers.data_collector import MdpStepCollector, MdpPathCollector
 
+from a2c_ppo_acktr import utils
 from a2c_ppo_acktr.envs import TransposeImage, make_vec_envs
 from a2c_ppo_acktr.model import CNNBase, create_output_distribution
 from a2c_ppo_acktr.wrappers import (
@@ -28,6 +30,12 @@ from a2c_ppo_acktr.wrappers import (
 def experiment(variant):
     setup_logger("name-of-experiment", variant=variant)
     ptu.set_gpu_mode(True)
+    log_dir = os.path.expanduser(variant["log_dir"])
+    eval_log_dir = log_dir + "_eval"
+    utils.cleanup_log_dir(log_dir)
+    utils.cleanup_log_dir(eval_log_dir)
+
+    # missing - set torch seed and num threads=1
 
     # expl_env = gym.make(variant["env_name"])
     expl_envs = make_vec_envs(
@@ -44,7 +52,7 @@ def experiment(variant):
     eval_envs = make_vec_envs(
         variant["env_name"],
         variant["seed"],
-        1,
+        variant["num_processes"],
         variant["gamma"],
         variant["log_dir"],
         ptu.device,
@@ -103,6 +111,8 @@ def experiment(variant):
     #     eval_policy,
     # )
 
+
+    #missing: at this stage, policy hasn't been sent to device, but happens later
     eval_path_collector = RolloutStepCollector(
         eval_envs,
         eval_policy,
@@ -119,11 +129,12 @@ def experiment(variant):
         max_num_epoch_paths_saved=variant["num_steps"],
         num_processes=variant["num_processes"],
     )
+    #added: created rollout(5,1,(4,84,84),Discrete(6),1), reset env and added obs to rollout[step]
 
     trainer = A2CTrainer(actor_critic=expl_policy, **variant["trainer_kwargs"])
-
+    #missing: by this point, rollout back in sync.
     replay_buffer = EnvReplayBuffer(variant["replay_buffer_size"], expl_envs)
-
+    #added: replay buffer is new
     algorithm = TorchIkostrikovRLAlgorithm(
         trainer=trainer,
         exploration_env=expl_envs,
@@ -143,6 +154,6 @@ def experiment(variant):
     )
 
     algorithm.to(ptu.device)
-
+    #missing: device back in sync
     algorithm.train()
 
