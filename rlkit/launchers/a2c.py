@@ -1,6 +1,6 @@
 import gym
 from torch import nn as nn
-
+import os
 
 from rlkit.exploration_strategies.base import PolicyWrappedWithExplorationStrategy
 from rlkit.exploration_strategies.epsilon_greedy import (
@@ -17,6 +17,7 @@ from rlkit.samplers.data_collector import MdpStepCollector, MdpPathCollector
 
 from a2c_ppo_acktr.envs import TransposeImage, make_vec_envs
 from a2c_ppo_acktr.model import CNNBase, create_output_distribution
+from a2c_ppo_acktr import utils
 from a2c_ppo_acktr.wrappers import (
     WrappedPolicy,
     A2CTrainer,
@@ -28,6 +29,11 @@ from a2c_ppo_acktr.wrappers import (
 def experiment(variant):
     setup_logger("name-of-experiment", variant=variant)
     ptu.set_gpu_mode(True)
+    # missing torch seeds + torch.set_num_threads
+    log_dir = os.path.expanduser(variant["log_dir"])
+    eval_log_dir = log_dir + "_eval"
+    utils.cleanup_log_dir(log_dir)
+    utils.cleanup_log_dir(eval_log_dir)
 
     # expl_env = gym.make(variant["env_name"])
     expl_envs = make_vec_envs(
@@ -44,7 +50,7 @@ def experiment(variant):
     eval_envs = make_vec_envs(
         variant["env_name"],
         variant["seed"],
-        1,
+        variant["num_processes"],
         variant["gamma"],
         variant["log_dir"],
         ptu.device,
