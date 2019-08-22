@@ -46,7 +46,7 @@ def experiment(variant):
         variant["log_dir"],  # probably change this?
         ptu.device,
         False,
-        1,
+        pytorch=False,
     )
     # eval_env = gym.make(variant["env_name"])
     eval_envs = make_vec_envs(
@@ -57,7 +57,7 @@ def experiment(variant):
         variant["log_dir"],
         ptu.device,
         False,
-        1,
+        pytorch=False,
     )
     obs_shape = expl_envs.observation_space.shape
     # if len(obs_shape) == 3 and obs_shape[2] in [1, 3]:  # convert WxHxC into CxWxH
@@ -96,10 +96,22 @@ def experiment(variant):
     dist = create_output_distribution(action_space, base.output_size)
 
     eval_policy = WrappedPolicy(
-        obs_shape, action_space, base=base, deterministic=True, dist=dist
+        obs_shape,
+        action_space,
+        ptu.device,
+        base=base,
+        deterministic=True,
+        dist=dist,
+        num_processes=variant["num_processes"],
     )
     expl_policy = WrappedPolicy(
-        obs_shape, action_space, base=base, deterministic=False, dist=dist
+        obs_shape,
+        action_space,
+        ptu.device,
+        base=base,
+        deterministic=False,
+        dist=dist,
+        num_processes=variant["num_processes"],
     )
 
     # qf_criterion = nn.MSELoss()
@@ -111,8 +123,7 @@ def experiment(variant):
     #     eval_policy,
     # )
 
-
-    #missing: at this stage, policy hasn't been sent to device, but happens later
+    # missing: at this stage, policy hasn't been sent to device, but happens later
     eval_path_collector = RolloutStepCollector(
         eval_envs,
         eval_policy,
@@ -129,12 +140,12 @@ def experiment(variant):
         max_num_epoch_paths_saved=variant["num_steps"],
         num_processes=variant["num_processes"],
     )
-    #added: created rollout(5,1,(4,84,84),Discrete(6),1), reset env and added obs to rollout[step]
+    # added: created rollout(5,1,(4,84,84),Discrete(6),1), reset env and added obs to rollout[step]
 
     trainer = A2CTrainer(actor_critic=expl_policy, **variant["trainer_kwargs"])
-    #missing: by this point, rollout back in sync.
+    # missing: by this point, rollout back in sync.
     replay_buffer = EnvReplayBuffer(variant["replay_buffer_size"], expl_envs)
-    #added: replay buffer is new
+    # added: replay buffer is new
     algorithm = TorchIkostrikovRLAlgorithm(
         trainer=trainer,
         exploration_env=expl_envs,
@@ -154,6 +165,6 @@ def experiment(variant):
     )
 
     algorithm.to(ptu.device)
-    #missing: device back in sync
+    # missing: device back in sync
     algorithm.train()
 

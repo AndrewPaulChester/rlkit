@@ -29,8 +29,8 @@ def experiment(variant):
 
     expl_env = gym.make(variant["env_name"])
     eval_env = gym.make(variant["env_name"])
-    obs_dim = expl_env.observation_space.shape[1]
-    channels = expl_env.observation_space.shape[0]
+    obs_dim = expl_env.observation_space.image.shape[1]
+    channels = expl_env.observation_space.image.shape[0]
     action_dim = SYMBOLIC_ACTION_COUNT
     symbolic_action_space = gym.spaces.Discrete(SYMBOLIC_ACTION_COUNT)
     symb_env = gym.make(variant["env_name"])

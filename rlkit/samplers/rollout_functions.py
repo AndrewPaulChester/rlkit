@@ -178,7 +178,7 @@ def hierarchical_rollout(
     while path_length < max_path_length:
         (a, e), agent_info = agent.get_action(o)
         next_o, r, d, env_info = env.step(a)
-        if agent_info["subgoal"] is not None:
+        if agent_info.get("subgoal") is not None:
             img = json_to_screen(o)
             observations.append(img)
             actions.append(agent_info["subgoal"])
