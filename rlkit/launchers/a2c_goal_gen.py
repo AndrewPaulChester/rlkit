@@ -108,6 +108,7 @@ def experiment(variant):
             dist=dist,
             num_processes=variant["num_processes"],
         ),
+        num_processes=variant["num_processes"],
         vectorised=True,
     )
     expl_policy = LearnPlanPolicy(
@@ -120,6 +121,7 @@ def experiment(variant):
             dist=dist,
             num_processes=variant["num_processes"],
         ),
+        num_processes=variant["num_processes"],
         vectorised=True,
     )
 
