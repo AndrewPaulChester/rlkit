@@ -2,6 +2,7 @@ import gym
 from torch import nn as nn
 import os
 
+
 from rlkit.exploration_strategies.base import PolicyWrappedWithExplorationStrategy
 from rlkit.exploration_strategies.epsilon_greedy import (
     EpsilonGreedy,
@@ -22,8 +23,11 @@ from a2c_ppo_acktr.wrappers import (
     WrappedPolicy,
     A2CTrainer,
     RolloutStepCollector,
+    HierarchicalStepCollector,
     TorchIkostrikovRLAlgorithm,
 )
+
+from gym_agent.learn_plan_policy import LearnPlanPolicy
 
 
 def experiment(variant):
@@ -33,6 +37,8 @@ def experiment(variant):
     eval_log_dir = log_dir + "_eval"
     utils.cleanup_log_dir(log_dir)
     utils.cleanup_log_dir(eval_log_dir)
+
+    # missing - set torch seed and num threads=1
 
     # expl_env = gym.make(variant["env_name"])
     expl_envs = make_vec_envs(
@@ -56,7 +62,7 @@ def experiment(variant):
         False,
         pytorch=False,
     )
-    obs_shape = expl_envs.observation_space.shape
+    obs_shape = expl_envs.observation_space.image.shape
     # if len(obs_shape) == 3 and obs_shape[2] in [1, 3]:  # convert WxHxC into CxWxH
     #     expl_env = TransposeImage(expl_env, op=[2, 0, 1])
     #     eval_env = TransposeImage(eval_env, op=[2, 0, 1])
@@ -92,23 +98,29 @@ def experiment(variant):
 
     dist = create_output_distribution(action_space, base.output_size)
 
-    eval_policy = WrappedPolicy(
-        obs_shape,
-        action_space,
-        ptu.device,
-        base=base,
-        deterministic=True,
-        dist=dist,
-        num_processes=variant["num_processes"],
+    eval_policy = LearnPlanPolicy(
+        WrappedPolicy(
+            obs_shape,
+            action_space,
+            ptu.device,
+            base=base,
+            deterministic=True,
+            dist=dist,
+            num_processes=variant["num_processes"],
+        ),
+        vectorised=True,
     )
-    expl_policy = WrappedPolicy(
-        obs_shape,
-        action_space,
-        ptu.device,
-        base=base,
-        deterministic=False,
-        dist=dist,
-        num_processes=variant["num_processes"],
+    expl_policy = LearnPlanPolicy(
+        WrappedPolicy(
+            obs_shape,
+            action_space,
+            ptu.device,
+            base=base,
+            deterministic=False,
+            dist=dist,
+            num_processes=variant["num_processes"],
+        ),
+        vectorised=True,
     )
 
     # qf_criterion = nn.MSELoss()
@@ -121,7 +133,7 @@ def experiment(variant):
     # )
 
     # missing: at this stage, policy hasn't been sent to device, but happens later
-    eval_path_collector = RolloutStepCollector(
+    eval_path_collector = HierarchicalStepCollector(
         eval_envs,
         eval_policy,
         ptu.device,
@@ -130,7 +142,7 @@ def experiment(variant):
         ],
         num_processes=variant["num_processes"],
     )
-    expl_path_collector = RolloutStepCollector(
+    expl_path_collector = HierarchicalStepCollector(
         expl_envs,
         expl_policy,
         ptu.device,
@@ -139,7 +151,7 @@ def experiment(variant):
     )
     # added: created rollout(5,1,(4,84,84),Discrete(6),1), reset env and added obs to rollout[step]
 
-    trainer = A2CTrainer(actor_critic=expl_policy, **variant["trainer_kwargs"])
+    trainer = A2CTrainer(actor_critic=expl_policy.learner, **variant["trainer_kwargs"])
     # missing: by this point, rollout back in sync.
     replay_buffer = EnvReplayBuffer(variant["replay_buffer_size"], expl_envs)
     # added: replay buffer is new

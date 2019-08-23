@@ -2,6 +2,7 @@ import gym
 from torch import nn as nn
 import os
 
+
 from rlkit.exploration_strategies.base import PolicyWrappedWithExplorationStrategy
 from rlkit.exploration_strategies.epsilon_greedy import (
     EpsilonGreedy,
@@ -20,7 +21,7 @@ from a2c_ppo_acktr.envs import TransposeImage, make_vec_envs
 from a2c_ppo_acktr.model import CNNBase, create_output_distribution
 from a2c_ppo_acktr.wrappers import (
     WrappedPolicy,
-    A2CTrainer,
+    PPOTrainer,
     RolloutStepCollector,
     TorchIkostrikovRLAlgorithm,
 )
@@ -34,6 +35,8 @@ def experiment(variant):
     utils.cleanup_log_dir(log_dir)
     utils.cleanup_log_dir(eval_log_dir)
 
+    # missing - set torch seed and num threads=1
+
     # expl_env = gym.make(variant["env_name"])
     expl_envs = make_vec_envs(
         variant["env_name"],
@@ -43,6 +46,7 @@ def experiment(variant):
         variant["log_dir"],  # probably change this?
         ptu.device,
         False,
+        1,
         pytorch=False,
     )
     # eval_env = gym.make(variant["env_name"])
@@ -54,6 +58,7 @@ def experiment(variant):
         variant["log_dir"],
         ptu.device,
         False,
+        1,
         pytorch=False,
     )
     obs_shape = expl_envs.observation_space.shape
@@ -139,7 +144,7 @@ def experiment(variant):
     )
     # added: created rollout(5,1,(4,84,84),Discrete(6),1), reset env and added obs to rollout[step]
 
-    trainer = A2CTrainer(actor_critic=expl_policy, **variant["trainer_kwargs"])
+    trainer = PPOTrainer(actor_critic=expl_policy, **variant["trainer_kwargs"])
     # missing: by this point, rollout back in sync.
     replay_buffer = EnvReplayBuffer(variant["replay_buffer_size"], expl_envs)
     # added: replay buffer is new
