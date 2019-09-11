@@ -72,28 +72,7 @@ def experiment(variant):
     action_space = expl_envs.action_space
 
     base_kwargs = {"num_inputs": channels, "recurrent": variant["recurrent_policy"]}
-    # qf = CNN(
-    #     input_width=obs_width,
-    #     input_height=obs_height,
-    #     input_channels=channels,
-    #     output_size=action_dim,
-    #     kernel_sizes=[8, 4],
-    #     n_channels=[16, 32],
-    #     strides=[4, 2],
-    #     paddings=[0, 0],
-    #     hidden_sizes=[256],
-    # )
-    # target_qf = CNN(
-    #     input_width=obs_width,
-    #     input_height=obs_height,
-    #     input_channels=channels,
-    #     output_size=action_dim,
-    #     kernel_sizes=[8, 4],
-    #     n_channels=[16, 32],
-    #     strides=[4, 2],
-    #     paddings=[0, 0],
-    #     hidden_sizes=[256],
-    # )
+
     base = CNNBase(**base_kwargs)
 
     dist = create_output_distribution(action_space, base.output_size)
@@ -125,15 +104,6 @@ def experiment(variant):
         vectorised=True,
     )
 
-    # qf_criterion = nn.MSELoss()
-    # eval_policy = ArgmaxDiscretePolicy(qf)
-    # expl_policy = PolicyWrappedWithExplorationStrategy(
-    #     AnnealedEpsilonGreedy(
-    #         expl_env.action_space, anneal_rate=variant["anneal_rate"]
-    #     ),
-    #     eval_policy,
-    # )
-
     # missing: at this stage, policy hasn't been sent to device, but happens later
     eval_path_collector = HierarchicalStepCollector(
         eval_envs,
@@ -143,6 +113,7 @@ def experiment(variant):
             "num_eval_steps_per_epoch"
         ],
         num_processes=variant["num_processes"],
+        render=True,
     )
     expl_path_collector = HierarchicalStepCollector(
         expl_envs,
@@ -150,6 +121,7 @@ def experiment(variant):
         ptu.device,
         max_num_epoch_paths_saved=variant["num_steps"],
         num_processes=variant["num_processes"],
+        render=True,
     )
     # added: created rollout(5,1,(4,84,84),Discrete(6),1), reset env and added obs to rollout[step]
 

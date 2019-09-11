@@ -77,10 +77,10 @@ def get_action_histograms(paths, stat_prefix=""):
     if "probs" not in paths[0]["agent_infos"][0]:
         return {}  # early exit for algos with no probabilities
     statistics = OrderedDict()
-    actions = np.concatenate([p["actions"].squeeze(1) for p in paths])
+    actions = np.concatenate([p["actions"] for p in paths])
     probs = np.concatenate([ai["probs"] for p in paths for ai in p["agent_infos"]])
-    for a in set(actions):
-        statistics[str(a)] = probs[actions == a]
+    # for a in set(actions):
+    #     statistics[str(a)] = probs[actions == a]
     return statistics
 
 
