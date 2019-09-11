@@ -1,6 +1,6 @@
 import gym
 from torch import nn as nn
-
+import json
 
 from rlkit.exploration_strategies.base import PolicyWrappedWithExplorationStrategy
 from rlkit.exploration_strategies.epsilon_greedy import (
@@ -15,10 +15,32 @@ from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.launchers.launcher_util import setup_logger
 from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
-from a2c_ppo_acktr.envs import TransposeImage
+from rlkit.samplers.rollout_functions import hierarchical_rollout
+from rlkit.policies.base import Policy
 
-from gym_taxi.utils.spaces import Json
-from gym_taxi.utils.wrappers import BoxWrapper
+from gym_taxi.utils.config import FIXED_GRID_SIZE, DISCRETE_ENVIRONMENT_STATES
+
+SYMBOLIC_ACTION_COUNT = 4 * (FIXED_GRID_SIZE * FIXED_GRID_SIZE + 1)
+
+from gym_agent.learn_plan_policy import LearnPlanPolicy
+
+
+class ScriptedPolicy(nn.Module, Policy):
+    def __init__(self, qf):
+        super().__init__()
+        self.qf = qf
+        self.json_requested = True
+
+    def get_action(self, obs):
+        obs = json.loads(obs)
+
+        action = {
+            "delivered": [p["pid"] for p in obs["passenger"]],
+            "empty": False,
+            "passenger": None,
+            "location": None,
+        }
+        return (action, False), {"subgoal": 1}
 
 
 def experiment(variant):
@@ -27,24 +49,16 @@ def experiment(variant):
 
     expl_env = gym.make(variant["env_name"])
     eval_env = gym.make(variant["env_name"])
-
-    if isinstance(expl_env.observation_space, Json):
-        expl_env = BoxWrapper(expl_env)
-        eval_env = BoxWrapper(eval_env)
-        # obs_shape = expl_env.observation_space.image.shape
-
-    obs_shape = expl_env.observation_space.shape
-    if len(obs_shape) == 3 and obs_shape[2] in [1, 3]:  # convert WxHxC into CxWxH
-        expl_env = TransposeImage(expl_env, op=[2, 0, 1])
-        eval_env = TransposeImage(eval_env, op=[2, 0, 1])
-
-    obs_shape = expl_env.observation_space.shape
-    channels, obs_width, obs_height = obs_shape
-    action_dim = eval_env.action_space.n
+    obs_dim = expl_env.observation_space.image.shape[1]
+    channels = expl_env.observation_space.image.shape[0]
+    action_dim = SYMBOLIC_ACTION_COUNT
+    symbolic_action_space = gym.spaces.Discrete(SYMBOLIC_ACTION_COUNT)
+    symb_env = gym.make(variant["env_name"])
+    symb_env.action_space = symbolic_action_space
 
     qf = CNN(
-        input_width=obs_width,
-        input_height=obs_height,
+        input_width=obs_dim,
+        input_height=obs_dim,
         input_channels=channels,
         output_size=action_dim,
         kernel_sizes=[8, 4],
@@ -54,8 +68,8 @@ def experiment(variant):
         hidden_sizes=[256],
     )
     target_qf = CNN(
-        input_width=obs_width,
-        input_height=obs_height,
+        input_width=obs_dim,
+        input_height=obs_dim,
         input_channels=channels,
         output_size=action_dim,
         kernel_sizes=[8, 4],
@@ -65,22 +79,25 @@ def experiment(variant):
         hidden_sizes=[256],
     )
     qf_criterion = nn.MSELoss()
-    eval_policy = ArgmaxDiscretePolicy(qf)
-    expl_policy = PolicyWrappedWithExplorationStrategy(
-        AnnealedEpsilonGreedy(
-            expl_env.action_space, anneal_rate=variant["anneal_rate"]
-        ),
-        eval_policy,
+
+    eval_learner_policy = ScriptedPolicy(qf)
+    expl_learner_policy = ScriptedPolicy(qf)
+
+    eval_policy = LearnPlanPolicy(eval_learner_policy)
+    expl_policy = LearnPlanPolicy(expl_learner_policy)
+    eval_path_collector = MdpPathCollector(
+        eval_env, eval_policy, rollout=hierarchical_rollout, render=True
     )
-    eval_path_collector = MdpPathCollector(eval_env, eval_policy, render=True)
-    expl_path_collector = MdpPathCollector(expl_env, expl_policy, render=True)
+    expl_path_collector = MdpPathCollector(
+        expl_env, expl_policy, rollout=hierarchical_rollout, render=True
+    )
     trainer = DQNTrainer(
         qf=qf,
         target_qf=target_qf,
         qf_criterion=qf_criterion,
         **variant["trainer_kwargs"]
     )
-    replay_buffer = EnvReplayBuffer(variant["replay_buffer_size"], expl_env)
+    replay_buffer = EnvReplayBuffer(variant["replay_buffer_size"], symb_env)
     algorithm = TorchBatchRLAlgorithm(
         trainer=trainer,
         exploration_env=expl_env,

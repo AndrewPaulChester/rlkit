@@ -1,4 +1,5 @@
 from gym.spaces import Discrete
+from gym_taxi.utils.spaces import Json
 
 from rlkit.data_management.simple_replay_buffer import SimpleReplayBuffer
 from rlkit.envs.env_utils import get_dim
@@ -31,7 +32,9 @@ class EnvReplayBuffer(SimpleReplayBuffer):
     def add_sample(
         self, observation, action, reward, terminal, next_observation, **kwargs
     ):
-        if isinstance(self._action_space, Discrete):
+        if isinstance(self._action_space, Discrete) and not isinstance(
+            self._ob_space, Json
+        ):
             new_action = np.zeros(self._action_dim)
             new_action[action] = 1
         else:

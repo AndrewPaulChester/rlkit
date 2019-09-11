@@ -36,7 +36,11 @@ class MdpPathCollector(PathCollector):
                 max_path_length, num_steps - num_steps_collected
             )
             path = self._rollout(
-                self._env, self._policy, max_path_length=max_path_length_this_loop
+                self._env,
+                self._policy,
+                max_path_length=max_path_length_this_loop,
+                render=self._render,
+                render_kwargs=self._render_kwargs,
             )
             path_len = len(path["actions"])
             if (
