@@ -300,6 +300,9 @@ class Logger(object):
         for (k, v) in hist_list:
             self.tb_logger.add_histogram(k.replace(" ", "_"), v, epoch)
 
+    def log_graph(self, model, input_to_model=None):
+        self.tb_logger.add_graph(model, input_to_model)
+
     def pop_prefix(self,):
         del self._prefixes[-1]
         self._prefix_str = "".join(self._prefixes)
