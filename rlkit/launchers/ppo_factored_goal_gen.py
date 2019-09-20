@@ -94,6 +94,7 @@ def experiment(variant):
         ),
         num_processes=variant["num_processes"],
         vectorised=True,
+        json_to_screen=expl_envs.observation_space.converter,
     )
     expl_policy = LearnPlanPolicy(
         WrappedPolicy(
@@ -107,6 +108,7 @@ def experiment(variant):
         ),
         num_processes=variant["num_processes"],
         vectorised=True,
+        json_to_screen=expl_envs.observation_space.converter,
     )
 
     eval_path_collector = HierarchicalStepCollector(

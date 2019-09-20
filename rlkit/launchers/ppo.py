@@ -16,6 +16,7 @@ from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.launchers.launcher_util import setup_logger
 from rlkit.samplers.data_collector import MdpStepCollector, MdpPathCollector
 
+
 from a2c_ppo_acktr import utils
 from a2c_ppo_acktr.envs import TransposeImage, make_vec_envs
 from a2c_ppo_acktr.model import CNNBase, create_output_distribution
@@ -25,6 +26,8 @@ from a2c_ppo_acktr.wrappers import (
     RolloutStepCollector,
     TorchIkostrikovRLAlgorithm,
 )
+
+from gym_taxi.utils.spaces import Json
 
 
 def experiment(variant):
@@ -61,38 +64,31 @@ def experiment(variant):
         1,
         pytorch=False,
     )
-    obs_shape = expl_envs.observation_space.shape
+    if isinstance(expl_envs.observation_space, Json):
+        obs_space = expl_envs.observation_space.image
+    else:
+        obs_space = expl_envs.observation_space
     # if len(obs_shape) == 3 and obs_shape[2] in [1, 3]:  # convert WxHxC into CxWxH
     #     expl_env = TransposeImage(expl_env, op=[2, 0, 1])
     #     eval_env = TransposeImage(eval_env, op=[2, 0, 1])
     # obs_shape = expl_env.observation_space.shape
 
-    channels, obs_width, obs_height = obs_shape
+    if isinstance(obs_space, gym.spaces.Tuple):
+        obs_shape = obs_space[0].shape
+        channels, obs_width, obs_height = obs_shape
+        fc_input = obs_space[1].shape[0]
+    else:
+        obs_shape = obs_space.shape
+        channels, obs_width, obs_height = obs_shape
+        fc_input = 0
     action_space = expl_envs.action_space
 
-    base_kwargs = {"num_inputs": channels, "recurrent": variant["recurrent_policy"]}
-    # qf = CNN(
-    #     input_width=obs_width,
-    #     input_height=obs_height,
-    #     input_channels=channels,
-    #     output_size=action_dim,
-    #     kernel_sizes=[8, 4],
-    #     n_channels=[16, 32],
-    #     strides=[4, 2],
-    #     paddings=[0, 0],
-    #     hidden_sizes=[256],
-    # )
-    # target_qf = CNN(
-    #     input_width=obs_width,
-    #     input_height=obs_height,
-    #     input_channels=channels,
-    #     output_size=action_dim,
-    #     kernel_sizes=[8, 4],
-    #     n_channels=[16, 32],
-    #     strides=[4, 2],
-    #     paddings=[0, 0],
-    #     hidden_sizes=[256],
-    # )
+    base_kwargs = {
+        "num_inputs": channels,
+        "recurrent": variant["recurrent_policy"],
+        "fc_size": fc_input,
+    }
+
     base = CNNBase(**base_kwargs)
 
     dist = create_output_distribution(action_space, base.output_size)
@@ -105,6 +101,7 @@ def experiment(variant):
         deterministic=True,
         dist=dist,
         num_processes=variant["num_processes"],
+        obs_space=obs_space,
     )
     expl_policy = WrappedPolicy(
         obs_shape,
@@ -114,6 +111,7 @@ def experiment(variant):
         deterministic=False,
         dist=dist,
         num_processes=variant["num_processes"],
+        obs_space=obs_space,
     )
 
     # qf_criterion = nn.MSELoss()
