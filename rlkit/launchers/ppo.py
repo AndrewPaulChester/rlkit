@@ -2,6 +2,7 @@ import gym
 from torch import nn as nn
 import os
 
+import roboschool
 
 from rlkit.exploration_strategies.base import PolicyWrappedWithExplorationStrategy
 from rlkit.exploration_strategies.epsilon_greedy import (
@@ -19,7 +20,7 @@ from rlkit.samplers.data_collector import MdpStepCollector, MdpPathCollector
 
 from a2c_ppo_acktr import utils
 from a2c_ppo_acktr.envs import TransposeImage, make_vec_envs
-from a2c_ppo_acktr.model import CNNBase, create_output_distribution
+from a2c_ppo_acktr.model import CNNBase, create_output_distribution, MLPBase
 from a2c_ppo_acktr.wrappers import (
     WrappedPolicy,
     PPOTrainer,
@@ -72,24 +73,30 @@ def experiment(variant):
     #     expl_env = TransposeImage(expl_env, op=[2, 0, 1])
     #     eval_env = TransposeImage(eval_env, op=[2, 0, 1])
     # obs_shape = expl_env.observation_space.shape
-
+    mlp = False
     if isinstance(obs_space, gym.spaces.Tuple):
         obs_shape = obs_space[0].shape
         channels, obs_width, obs_height = obs_shape
         fc_input = obs_space[1].shape[0]
+    elif len(obs_space.shape) == 1:
+        obs_shape = obs_space.shape
+        n = obs_shape[0]
+        mlp = True
     else:
         obs_shape = obs_space.shape
         channels, obs_width, obs_height = obs_shape
         fc_input = 0
     action_space = expl_envs.action_space
 
-    base_kwargs = {
-        "num_inputs": channels,
-        "recurrent": variant["recurrent_policy"],
-        "fc_size": fc_input,
-    }
-
-    base = CNNBase(**base_kwargs)
+    if mlp:
+        base = MLPBase(n)
+    else:
+        base_kwargs = {
+            "num_inputs": channels,
+            "recurrent": variant["recurrent_policy"],
+            "fc_size": fc_input,
+        }
+        base = CNNBase(**base_kwargs)
 
     dist = create_output_distribution(action_space, base.output_size)
 
@@ -132,6 +139,7 @@ def experiment(variant):
             "num_eval_steps_per_epoch"
         ],
         num_processes=variant["num_processes"],
+        # render=True,
     )
     expl_path_collector = RolloutStepCollector(
         expl_envs,
@@ -139,6 +147,7 @@ def experiment(variant):
         ptu.device,
         max_num_epoch_paths_saved=variant["num_steps"],
         num_processes=variant["num_processes"],
+        # render=True,
     )
     # added: created rollout(5,1,(4,84,84),Discrete(6),1), reset env and added obs to rollout[step]
 
