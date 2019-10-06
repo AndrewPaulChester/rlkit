@@ -113,7 +113,7 @@ def experiment(variant):
             "num_eval_steps_per_epoch"
         ],
         num_processes=variant["num_processes"],
-        render=True,
+        render=variant["render"],
     )
     expl_path_collector = HierarchicalStepCollector(
         expl_envs,
@@ -121,7 +121,7 @@ def experiment(variant):
         ptu.device,
         max_num_epoch_paths_saved=variant["num_steps"],
         num_processes=variant["num_processes"],
-        render=True,
+        render=variant["render"],
     )
     # added: created rollout(5,1,(4,84,84),Discrete(6),1), reset env and added obs to rollout[step]
 

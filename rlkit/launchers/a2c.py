@@ -13,6 +13,7 @@ from rlkit.torch.conv_networks import CNN
 import rlkit.torch.pytorch_util as ptu
 from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.launchers.launcher_util import setup_logger
+from rlkit.launchers import common
 from rlkit.samplers.data_collector import MdpStepCollector, MdpPathCollector
 
 from a2c_ppo_acktr import utils
@@ -27,68 +28,21 @@ from a2c_ppo_acktr.wrappers import (
 
 
 def experiment(variant):
-    setup_logger("name-of-experiment", variant=variant)
-    ptu.set_gpu_mode(True)
-    log_dir = os.path.expanduser(variant["log_dir"])
-    eval_log_dir = log_dir + "_eval"
-    utils.cleanup_log_dir(log_dir)
-    utils.cleanup_log_dir(eval_log_dir)
+    common.initialise(variant)
 
-    # expl_env = gym.make(variant["env_name"])
-    expl_envs = make_vec_envs(
-        variant["env_name"],
-        variant["seed"],
-        variant["num_processes"],
-        variant["gamma"],
-        variant["log_dir"],  # probably change this?
-        ptu.device,
-        False,
-        pytorch=False,
-    )
-    # eval_env = gym.make(variant["env_name"])
-    eval_envs = make_vec_envs(
-        variant["env_name"],
-        variant["seed"],
-        variant["num_processes"],
-        variant["gamma"],
-        variant["log_dir"],
-        ptu.device,
-        False,
-        pytorch=False,
-    )
-    obs_shape = expl_envs.observation_space.shape
-    # if len(obs_shape) == 3 and obs_shape[2] in [1, 3]:  # convert WxHxC into CxWxH
-    #     expl_env = TransposeImage(expl_env, op=[2, 0, 1])
-    #     eval_env = TransposeImage(eval_env, op=[2, 0, 1])
-    # obs_shape = expl_env.observation_space.shape
+    expl_envs, eval_envs = common.create_environments(variant)
 
-    channels, obs_width, obs_height = obs_shape
-    action_space = expl_envs.action_space
+    (
+        obs_shape,
+        obs_space,
+        action_space,
+        n,
+        mlp,
+        channels,
+        fc_input,
+    ) = common.get_spaces(expl_envs)
 
-    base_kwargs = {"num_inputs": channels, "recurrent": variant["recurrent_policy"]}
-    # qf = CNN(
-    #     input_width=obs_width,
-    #     input_height=obs_height,
-    #     input_channels=channels,
-    #     output_size=action_dim,
-    #     kernel_sizes=[8, 4],
-    #     n_channels=[16, 32],
-    #     strides=[4, 2],
-    #     paddings=[0, 0],
-    #     hidden_sizes=[256],
-    # )
-    # target_qf = CNN(
-    #     input_width=obs_width,
-    #     input_height=obs_height,
-    #     input_channels=channels,
-    #     output_size=action_dim,
-    #     kernel_sizes=[8, 4],
-    #     n_channels=[16, 32],
-    #     strides=[4, 2],
-    #     paddings=[0, 0],
-    #     hidden_sizes=[256],
-    # )
-    base = CNNBase(**base_kwargs)
+    base = common.create_networks(variant, n, mlp, channels, fc_input)
 
     dist = create_output_distribution(action_space, base.output_size)
 
@@ -100,6 +54,7 @@ def experiment(variant):
         deterministic=True,
         dist=dist,
         num_processes=variant["num_processes"],
+        obs_space=obs_space,
     )
     expl_policy = WrappedPolicy(
         obs_shape,
@@ -109,6 +64,7 @@ def experiment(variant):
         deterministic=False,
         dist=dist,
         num_processes=variant["num_processes"],
+        obs_space=obs_space,
     )
 
     # qf_criterion = nn.MSELoss()
@@ -129,7 +85,7 @@ def experiment(variant):
             "num_eval_steps_per_epoch"
         ],
         num_processes=variant["num_processes"],
-        render=True,
+        render=variant["render"],
     )
     expl_path_collector = RolloutStepCollector(
         expl_envs,
@@ -137,7 +93,7 @@ def experiment(variant):
         ptu.device,
         max_num_epoch_paths_saved=variant["num_steps"],
         num_processes=variant["num_processes"],
-        render=True,
+        render=variant["render"],
     )
     # added: created rollout(5,1,(4,84,84),Discrete(6),1), reset env and added obs to rollout[step]
 
