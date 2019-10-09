@@ -86,10 +86,10 @@ def experiment(variant):
     eval_policy = LearnPlanPolicy(eval_learner_policy)
     expl_policy = LearnPlanPolicy(expl_learner_policy)
     eval_path_collector = MdpPathCollector(
-        eval_env, eval_policy, rollout=hierarchical_rollout, render=True
+        eval_env, eval_policy, rollout=hierarchical_rollout, render=variant["render"]
     )
     expl_path_collector = MdpPathCollector(
-        expl_env, expl_policy, rollout=hierarchical_rollout, render=True
+        expl_env, expl_policy, rollout=hierarchical_rollout, render=variant["render"]
     )
     trainer = DQNTrainer(
         qf=qf,
