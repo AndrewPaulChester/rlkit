@@ -51,15 +51,26 @@ class LogPathCollector(MdpPathCollector):
         self.rewards = [[] for _ in range(num_processes)]
         self.values = [[] for _ in range(num_processes)]
         self.probs = [[] for _ in range(num_processes)]
+        self.ai = [[] for _ in range(num_processes)]
 
-    def add_step(self, actions, action_log_probs, rewards, done, value):
-
+    def add_step(self, actions, action_log_probs, rewards, done, value, agent_infos):
+        # print(agent_infos)
         actions = actions.cpu().squeeze(1).numpy()
         rewards = rewards.cpu().squeeze(1).numpy()
         probs = np.power(math.e, action_log_probs.cpu().squeeze(1).numpy())
         explored = probs < 0.5
         paths = []
         values = value.cpu().squeeze(1).numpy()
+        for agent_info in agent_infos:
+            keys = set(agent_info.keys()) - set(("probs", "value", "dist", "subgoal"))
+            for k in keys:
+                del agent_info[k]
+            for k, v in agent_info.items():
+                try:
+                    agent_info[k] = v.cpu().squeeze(1).numpy()
+                except AttributeError:
+                    pass
+            agent_info["probs"] = np.power(math.e, agent_info["probs"])
 
         for i in range(len(actions)):
             self.actions[i].append(actions[i])
@@ -67,6 +78,7 @@ class LogPathCollector(MdpPathCollector):
             self.explored[i].append(explored[i])
             self.values[i].append(values[i])
             self.probs[i].append(probs[i])
+            self.ai[i].append(agent_infos[i])
 
             if done[i]:
                 acts = np.array(self.actions[i])
@@ -74,7 +86,7 @@ class LogPathCollector(MdpPathCollector):
                     acts = np.expand_dims(acts, 1)
                 ai = ppp.dict_of_list__to__list_of_dicts(
                     {
-                        "values": np.array(self.values[i]).reshape(-1, 1),
+                        "value": np.array(self.values[i]).reshape(-1, 1),
                         "probs": np.array(self.probs[i]).reshape(-1, 1),
                     },
                     len(np.array(self.values[i]).reshape(-1, 1)),
@@ -87,7 +99,7 @@ class LogPathCollector(MdpPathCollector):
                         rewards=np.array(self.rewards[i]).reshape(-1, 1),
                         next_observations={},
                         terminals={},
-                        agent_infos=ai,
+                        agent_infos=self.ai[i],
                         env_infos={},
                     )
                 )
@@ -96,6 +108,7 @@ class LogPathCollector(MdpPathCollector):
                 self.rewards[i] = []
                 self.values[i] = []
                 self.probs[i] = []
+                self.ai[i] = []
 
         if paths:
             self._epoch_paths.extend(paths)
