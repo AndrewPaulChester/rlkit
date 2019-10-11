@@ -39,7 +39,13 @@ class LogPathCollector(MdpPathCollector):
         render_kwargs=None,
         num_processes=1,
     ):
-        super().__init__(env, policy, max_num_epoch_paths_saved, render, render_kwargs)
+        super().__init__(
+            env,
+            policy,
+            max_num_epoch_paths_saved * num_processes,
+            render,
+            render_kwargs,
+        )
         self.actions = [[] for _ in range(num_processes)]
         self.explored = [[] for _ in range(num_processes)]
         self.rewards = [[] for _ in range(num_processes)]

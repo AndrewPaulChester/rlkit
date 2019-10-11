@@ -96,8 +96,7 @@ def experiment(variant):
         ptu.device,
         max_num_epoch_paths_saved=variant["algorithm_kwargs"][
             "num_eval_steps_per_epoch"
-        ]
-        * variant["num_processes"],
+        ],
         num_processes=variant["num_processes"],
         render=variant["render"],
     )
@@ -105,7 +104,7 @@ def experiment(variant):
         expl_envs,
         expl_policy,
         ptu.device,
-        max_num_epoch_paths_saved=variant["num_steps"] * variant["num_processes"],
+        max_num_epoch_paths_saved=variant["num_steps"],
         num_processes=variant["num_processes"],
         render=variant["render"],
     )

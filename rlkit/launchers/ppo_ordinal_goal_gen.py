@@ -1,8 +1,8 @@
 import gym
 from torch import nn as nn
 import os
+import numpy as np
 
-import roboschool
 
 from rlkit.exploration_strategies.base import PolicyWrappedWithExplorationStrategy
 from rlkit.exploration_strategies.epsilon_greedy import (
@@ -18,18 +18,19 @@ from rlkit.launchers.launcher_util import setup_logger
 from rlkit.launchers import common
 from rlkit.samplers.data_collector import MdpStepCollector, MdpPathCollector
 
-
 from a2c_ppo_acktr import utils
 from a2c_ppo_acktr.envs import TransposeImage, make_vec_envs
-from a2c_ppo_acktr.model import CNNBase, create_output_distribution, MLPBase
+from a2c_ppo_acktr.model import CNNBase, create_output_distribution
 from a2c_ppo_acktr.wrappers import (
     WrappedPolicy,
     PPOTrainer,
     RolloutStepCollector,
+    HierarchicalStepCollector,
     TorchIkostrikovRLAlgorithm,
 )
+from a2c_ppo_acktr import distributions
 
-from gym_taxi.utils.spaces import Json
+from gym_agent.learn_plan_policy import LearnPlanPolicy
 
 
 def experiment(variant):
@@ -47,32 +48,53 @@ def experiment(variant):
         fc_input,
     ) = common.get_spaces(expl_envs)
 
+    # CHANGE TO ORDINAL ACTION SPACE
+    action_space = gym.spaces.Box(-np.inf, np.inf, (8,))
+    expl_envs.action_space = action_space
+    eval_envs.action_space = action_space
+
     base = common.create_networks(variant, n, mlp, channels, fc_input)
 
-    dist = create_output_distribution(action_space, base.output_size)
-
-    eval_policy = WrappedPolicy(
-        obs_shape,
-        action_space,
-        ptu.device,
-        base=base,
-        deterministic=True,
-        dist=dist,
-        num_processes=variant["num_processes"],
-        obs_space=obs_space,
-    )
-    expl_policy = WrappedPolicy(
-        obs_shape,
-        action_space,
-        ptu.device,
-        base=base,
-        deterministic=False,
-        dist=dist,
-        num_processes=variant["num_processes"],
-        obs_space=obs_space,
+    bernoulli_dist = distributions.Bernoulli(base.output_size, 4)
+    passenger_dist = distributions.Categorical(base.output_size, 5)
+    delivered_dist = distributions.Categorical(base.output_size, 5)
+    continuous_dist = distributions.DiagGaussian(base.output_size, 2)
+    dist = distributions.DistributionGeneratorTuple(
+        (bernoulli_dist, continuous_dist, passenger_dist, delivered_dist)
     )
 
-    eval_path_collector = RolloutStepCollector(
+    eval_policy = LearnPlanPolicy(
+        WrappedPolicy(
+            obs_shape,
+            action_space,
+            ptu.device,
+            base=base,
+            deterministic=True,
+            dist=dist,
+            num_processes=variant["num_processes"],
+            obs_space=obs_space,
+        ),
+        num_processes=variant["num_processes"],
+        vectorised=True,
+        json_to_screen=expl_envs.observation_space.converter,
+    )
+    expl_policy = LearnPlanPolicy(
+        WrappedPolicy(
+            obs_shape,
+            action_space,
+            ptu.device,
+            base=base,
+            deterministic=False,
+            dist=dist,
+            num_processes=variant["num_processes"],
+            obs_space=obs_space,
+        ),
+        num_processes=variant["num_processes"],
+        vectorised=True,
+        json_to_screen=expl_envs.observation_space.converter,
+    )
+
+    eval_path_collector = HierarchicalStepCollector(
         eval_envs,
         eval_policy,
         ptu.device,
@@ -82,7 +104,7 @@ def experiment(variant):
         num_processes=variant["num_processes"],
         render=variant["render"],
     )
-    expl_path_collector = RolloutStepCollector(
+    expl_path_collector = HierarchicalStepCollector(
         expl_envs,
         expl_policy,
         ptu.device,
@@ -92,11 +114,10 @@ def experiment(variant):
     )
     # added: created rollout(5,1,(4,84,84),Discrete(6),1), reset env and added obs to rollout[step]
 
-    trainer = PPOTrainer(actor_critic=expl_policy, **variant["trainer_kwargs"])
+    trainer = PPOTrainer(actor_critic=expl_policy.learner, **variant["trainer_kwargs"])
     # missing: by this point, rollout back in sync.
     replay_buffer = EnvReplayBuffer(variant["replay_buffer_size"], expl_envs)
     # added: replay buffer is new
-
     algorithm = TorchIkostrikovRLAlgorithm(
         trainer=trainer,
         exploration_env=expl_envs,
