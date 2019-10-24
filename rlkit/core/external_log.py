@@ -68,6 +68,8 @@ class LogPathCollector(MdpPathCollector):
             for k, v in agent_info.items():
                 try:
                     agent_info[k] = v.cpu().squeeze(1).numpy()
+                except IndexError:
+                    agent_info[k] = v.cpu().numpy()
                 except AttributeError:
                     pass
             agent_info["probs"] = np.power(math.e, agent_info["probs"])
@@ -84,13 +86,6 @@ class LogPathCollector(MdpPathCollector):
                 acts = np.array(self.actions[i])
                 if len(acts.shape) == 1:
                     acts = np.expand_dims(acts, 1)
-                ai = ppp.dict_of_list__to__list_of_dicts(
-                    {
-                        "value": np.array(self.values[i]).reshape(-1, 1),
-                        "probs": np.array(self.probs[i]).reshape(-1, 1),
-                    },
-                    len(np.array(self.values[i]).reshape(-1, 1)),
-                )
                 paths.append(
                     dict(
                         observations={},

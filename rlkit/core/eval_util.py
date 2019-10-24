@@ -84,8 +84,11 @@ def get_action_histograms(paths, stat_prefix=""):
     # for a in set(actions):
     #     statistics[str(a)] = probs[actions == a]
     dists = np.concatenate([ai["dist"] for p in paths for ai in p["agent_infos"]])
-    for i in range(dists.shape[1]):
-        statistics[str(i)] = dists[:, i]
+    if len(dists.shape) == 1:
+        statistics[0] = dists
+    else:
+        for i in range(dists.shape[1]):
+            statistics[str(i)] = dists[:, i]
     return statistics
 
 
