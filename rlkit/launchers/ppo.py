@@ -2,6 +2,8 @@ import gym
 from torch import nn as nn
 import os
 
+import numpy as np
+
 import roboschool
 
 from rlkit.exploration_strategies.base import PolicyWrappedWithExplorationStrategy
@@ -71,6 +73,11 @@ def experiment(variant):
         num_processes=variant["num_processes"],
         obs_space=obs_space,
     )
+
+    if action_space.__class__.__name__ == "Tuple":
+        action_space = gym.spaces.Box(-np.inf, np.inf, (8,))
+        expl_envs.action_space = action_space
+        eval_envs.action_space = action_space
 
     eval_path_collector = RolloutStepCollector(
         eval_envs,
