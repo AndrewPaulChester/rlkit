@@ -56,7 +56,7 @@ def experiment(variant):
         variant["env_name"],
         variant["seed"],
         variant["num_processes"],
-        variant["gamma"],
+        1,
         variant["log_dir"],
         ptu.device,
         False,
