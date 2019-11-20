@@ -36,11 +36,12 @@ from gym_agent.learn_plan_policy import LearnPlanPolicy
 
 
 class ScriptedPolicy(nn.Module, Policy):
-    def __init__(self, qf):
+    def __init__(self, qf, always_return):
         super().__init__()
         self.qf = qf
         self.json_requested = True
         self.is_recurrent = False
+        self.always_return = always_return
 
     def get_action(self, obs):
         obs = json.loads(obs)
@@ -49,22 +50,22 @@ class ScriptedPolicy(nn.Module, Policy):
                 "delivered": [p["pid"] for p in obs["passenger"]],
                 "empty": False,
                 "passenger": None,
-                "location": None,
+                "location": [0, 0] if self.always_return else None,
             }
-        # elif obs["taxi"]["location"] != [1, 1]:
-        #     action = {
-        #         "delivered": None,
-        #         "empty": False,
-        #         "passenger": None,
-        #         "location": [1, 1],
-        #     }
-        else:
+        else:  # obs["taxi"]["location"] != [0, 0]:
             action = {
                 "delivered": None,
                 "empty": False,
                 "passenger": None,
-                "location": None,
+                "location": [0, 0],
             }
+        # else:
+        #     action = {
+        #         "delivered": None,
+        #         "empty": False,
+        #         "passenger": None,
+        #         "location": None,
+        #     }
         return (
             (action, torch.zeros(1, 1)),
             {
@@ -131,13 +132,13 @@ def experiment(variant):
     )
 
     eval_policy = LearnPlanPolicy(
-        ScriptedPolicy(qf),
+        ScriptedPolicy(qf, variant["always_return"]),
         num_processes=variant["num_processes"],
         vectorised=True,
         json_to_screen=expl_envs.observation_space.converter,
     )
     expl_policy = LearnPlanPolicy(
-        ScriptedPolicy(qf),
+        ScriptedPolicy(qf, variant["always_return"]),
         num_processes=variant["num_processes"],
         vectorised=True,
         json_to_screen=expl_envs.observation_space.converter,
