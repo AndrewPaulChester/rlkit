@@ -104,7 +104,7 @@ def experiment(variant):
         num_processes=variant["num_processes"],
         render=variant["render"],
         gamma=1,
-        no_plan_penalty=variant.get("no_plan_penalty", False),
+        no_plan_penalty=True,
     )
     expl_path_collector = HierarchicalStepCollector(
         expl_envs,
