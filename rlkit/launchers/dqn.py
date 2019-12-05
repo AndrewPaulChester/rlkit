@@ -72,8 +72,12 @@ def experiment(variant):
         ),
         eval_policy,
     )
-    eval_path_collector = MdpPathCollector(eval_env, eval_policy, render=True)
-    expl_path_collector = MdpPathCollector(expl_env, expl_policy, render=True)
+    eval_path_collector = MdpPathCollector(
+        eval_env, eval_policy, render=variant["render"]
+    )
+    expl_path_collector = MdpPathCollector(
+        expl_env, expl_policy, render=variant["render"]
+    )
     trainer = DQNTrainer(
         qf=qf,
         target_qf=target_qf,

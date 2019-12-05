@@ -135,6 +135,17 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
         logger.record_dict(_get_epoch_timings())
         logger.record_tabular("Epoch", epoch)
         logger.dump_tabular(with_prefix=False, with_timestamp=False, epoch=epoch)
+        # for logging ikostrikov graph
+        # _, actor_features = self.trainer.actor_critic.base(
+        #     self.expl_data_collector.get_rollouts().obs[0]
+        # )
+        # dist = self.trainer.actor_critic.dist(actor_features)
+
+        # logger.log_graph(
+        #     self.trainer.actor_critic.base,
+        #     self.expl_data_collector.get_rollouts().obs[0],
+        # )
+        # logger.log_graph(self.trainer.actor_critic.dist, actor_features)
 
     @abc.abstractmethod
     def training_mode(self, mode):

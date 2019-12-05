@@ -1,6 +1,7 @@
 import gym
 from torch import nn as nn
 import os
+import numpy as np
 
 
 from rlkit.exploration_strategies.base import PolicyWrappedWithExplorationStrategy
@@ -26,6 +27,7 @@ from a2c_ppo_acktr.wrappers import (
     HierarchicalStepCollector,
     TorchIkostrikovRLAlgorithm,
 )
+from a2c_ppo_acktr import distributions
 
 from gym_agent.learn_plan_policy import LearnPlanPolicy
 
@@ -56,7 +58,7 @@ def experiment(variant):
         variant["env_name"],
         variant["seed"],
         variant["num_processes"],
-        1,
+        variant["gamma"],
         variant["log_dir"],
         ptu.device,
         False,
@@ -70,12 +72,17 @@ def experiment(variant):
 
     channels, obs_width, obs_height = obs_shape
     action_space = expl_envs.action_space
+    action_space = gym.spaces.Box(-np.inf, np.inf, (10,))
+    expl_envs.action_space = action_space  # not sure if this works... lets see?!
+    eval_envs.action_space = action_space
 
     base_kwargs = {"num_inputs": channels, "recurrent": variant["recurrent_policy"]}
 
     base = CNNBase(**base_kwargs)
 
-    dist = create_output_distribution(action_space, base.output_size)
+    bernoulli_dist = distributions.Bernoulli(base.output_size, 4)
+    continuous_dist = distributions.DiagGaussian(base.output_size, 6)
+    dist = distributions.DistributionGeneratorTuple((bernoulli_dist, continuous_dist))
 
     eval_policy = LearnPlanPolicy(
         WrappedPolicy(

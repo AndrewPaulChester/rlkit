@@ -2,6 +2,9 @@ import gym
 from torch import nn as nn
 import os
 
+import numpy as np
+
+import roboschool
 
 from rlkit.exploration_strategies.base import PolicyWrappedWithExplorationStrategy
 from rlkit.exploration_strategies.epsilon_greedy import (
@@ -14,11 +17,13 @@ from rlkit.torch.conv_networks import CNN
 import rlkit.torch.pytorch_util as ptu
 from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.launchers.launcher_util import setup_logger
+from rlkit.launchers import common
 from rlkit.samplers.data_collector import MdpStepCollector, MdpPathCollector
+
 
 from a2c_ppo_acktr import utils
 from a2c_ppo_acktr.envs import TransposeImage, make_vec_envs
-from a2c_ppo_acktr.model import CNNBase, create_output_distribution
+from a2c_ppo_acktr.model import CNNBase, create_output_distribution, MLPBase
 from a2c_ppo_acktr.wrappers import (
     WrappedPolicy,
     PPOTrainer,
@@ -26,74 +31,25 @@ from a2c_ppo_acktr.wrappers import (
     TorchIkostrikovRLAlgorithm,
 )
 
+from gym_taxi.utils.spaces import Json
+
 
 def experiment(variant):
-    setup_logger("name-of-experiment", variant=variant)
-    ptu.set_gpu_mode(True)
-    log_dir = os.path.expanduser(variant["log_dir"])
-    eval_log_dir = log_dir + "_eval"
-    utils.cleanup_log_dir(log_dir)
-    utils.cleanup_log_dir(eval_log_dir)
+    common.initialise(variant)
 
-    # missing - set torch seed and num threads=1
+    expl_envs, eval_envs = common.create_environments(variant)
 
-    # expl_env = gym.make(variant["env_name"])
-    expl_envs = make_vec_envs(
-        variant["env_name"],
-        variant["seed"],
-        variant["num_processes"],
-        variant["gamma"],
-        variant["log_dir"],  # probably change this?
-        ptu.device,
-        False,
-        1,
-        pytorch=False,
-    )
-    # eval_env = gym.make(variant["env_name"])
-    eval_envs = make_vec_envs(
-        variant["env_name"],
-        variant["seed"],
-        variant["num_processes"],
-        variant["gamma"],
-        variant["log_dir"],
-        ptu.device,
-        False,
-        1,
-        pytorch=False,
-    )
-    obs_shape = expl_envs.observation_space.shape
-    # if len(obs_shape) == 3 and obs_shape[2] in [1, 3]:  # convert WxHxC into CxWxH
-    #     expl_env = TransposeImage(expl_env, op=[2, 0, 1])
-    #     eval_env = TransposeImage(eval_env, op=[2, 0, 1])
-    # obs_shape = expl_env.observation_space.shape
+    (
+        obs_shape,
+        obs_space,
+        action_space,
+        n,
+        mlp,
+        channels,
+        fc_input,
+    ) = common.get_spaces(expl_envs)
 
-    channels, obs_width, obs_height = obs_shape
-    action_space = expl_envs.action_space
-
-    base_kwargs = {"num_inputs": channels, "recurrent": variant["recurrent_policy"]}
-    # qf = CNN(
-    #     input_width=obs_width,
-    #     input_height=obs_height,
-    #     input_channels=channels,
-    #     output_size=action_dim,
-    #     kernel_sizes=[8, 4],
-    #     n_channels=[16, 32],
-    #     strides=[4, 2],
-    #     paddings=[0, 0],
-    #     hidden_sizes=[256],
-    # )
-    # target_qf = CNN(
-    #     input_width=obs_width,
-    #     input_height=obs_height,
-    #     input_channels=channels,
-    #     output_size=action_dim,
-    #     kernel_sizes=[8, 4],
-    #     n_channels=[16, 32],
-    #     strides=[4, 2],
-    #     paddings=[0, 0],
-    #     hidden_sizes=[256],
-    # )
-    base = CNNBase(**base_kwargs)
+    base = common.create_networks(variant, n, mlp, channels, fc_input)
 
     dist = create_output_distribution(action_space, base.output_size)
 
@@ -105,6 +61,7 @@ def experiment(variant):
         deterministic=True,
         dist=dist,
         num_processes=variant["num_processes"],
+        obs_space=obs_space,
     )
     expl_policy = WrappedPolicy(
         obs_shape,
@@ -114,18 +71,14 @@ def experiment(variant):
         deterministic=False,
         dist=dist,
         num_processes=variant["num_processes"],
+        obs_space=obs_space,
     )
 
-    # qf_criterion = nn.MSELoss()
-    # eval_policy = ArgmaxDiscretePolicy(qf)
-    # expl_policy = PolicyWrappedWithExplorationStrategy(
-    #     AnnealedEpsilonGreedy(
-    #         expl_env.action_space, anneal_rate=variant["anneal_rate"]
-    #     ),
-    #     eval_policy,
-    # )
+    if action_space.__class__.__name__ == "Tuple":
+        action_space = gym.spaces.Box(-np.inf, np.inf, (8,))
+        expl_envs.action_space = action_space
+        eval_envs.action_space = action_space
 
-    # missing: at this stage, policy hasn't been sent to device, but happens later
     eval_path_collector = RolloutStepCollector(
         eval_envs,
         eval_policy,
@@ -134,6 +87,7 @@ def experiment(variant):
             "num_eval_steps_per_epoch"
         ],
         num_processes=variant["num_processes"],
+        render=variant["render"],
     )
     expl_path_collector = RolloutStepCollector(
         expl_envs,
@@ -141,6 +95,7 @@ def experiment(variant):
         ptu.device,
         max_num_epoch_paths_saved=variant["num_steps"],
         num_processes=variant["num_processes"],
+        render=variant["render"],
     )
     # added: created rollout(5,1,(4,84,84),Discrete(6),1), reset env and added obs to rollout[step]
 
@@ -148,6 +103,7 @@ def experiment(variant):
     # missing: by this point, rollout back in sync.
     replay_buffer = EnvReplayBuffer(variant["replay_buffer_size"], expl_envs)
     # added: replay buffer is new
+
     algorithm = TorchIkostrikovRLAlgorithm(
         trainer=trainer,
         exploration_env=expl_envs,

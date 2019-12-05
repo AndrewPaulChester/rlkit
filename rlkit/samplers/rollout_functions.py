@@ -176,7 +176,7 @@ def hierarchical_rollout(
     if render:
         env.render(**render_kwargs)
     while path_length < max_path_length:
-        (a, e), agent_info = agent.get_action(o)
+        (a, e), agent_info = agent.get_action(o, [0])
         next_o, r, d, env_info = env.step(a)
         if agent_info.get("subgoal") is not None:
             img = json_to_screen(o)

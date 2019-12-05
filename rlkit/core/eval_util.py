@@ -74,13 +74,27 @@ def get_action_histograms(paths, stat_prefix=""):
     """
     Get an OrderedDict with a bunch of statistic names and values.
     """
-    if "probs" not in paths[0]["agent_infos"][0]:
+    # print(paths[0]['agent_infos'][0]['dist'].shape)
+    if "dist" not in paths[0]["agent_infos"][0]:
         return {}  # early exit for algos with no probabilities
     statistics = OrderedDict()
-    actions = np.concatenate([p["actions"].squeeze(1) for p in paths])
-    probs = np.concatenate([ai["probs"] for p in paths for ai in p["agent_infos"]])
-    for a in set(actions):
-        statistics[str(a)] = probs[actions == a]
+    # actions = np.concatenate([p["actions"] for p in paths])
+    # if len(actions.shape) == 2:
+    #     actions = actions[:, 0]
+    # probs = np.concatenate([ai["probs"] for p in paths for ai in p["agent_infos"]])
+    # for a in set(actions):
+    #     statistics[str(a)] = probs[actions == a]
+    if len(paths[0]["agent_infos"][0]["dist"].shape) == 1:
+        dists = np.concatenate(
+            [np.expand_dims(ai["dist"], 0) for p in paths for ai in p["agent_infos"]]
+        )
+    else:
+        dists = np.concatenate([ai["dist"] for p in paths for ai in p["agent_infos"]])
+    if len(dists.shape) == 1:
+        statistics[0] = dists
+    else:
+        for i in range(dists.shape[1]):
+            statistics[str(i)] = dists[:, i]
     return statistics
 
 
