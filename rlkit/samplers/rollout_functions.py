@@ -1,5 +1,5 @@
 import numpy as np
-from gym_taxi.utils.representations import json_to_screen
+from gym_craft.utils.representations import json_to_screen
 
 
 def multitask_rollout(
