@@ -58,7 +58,7 @@ def experiment(variant):
     # action_space = gym.spaces.Box(-np.inf, np.inf, (8,))
     # expl_envs.action_space = action_space
     # eval_envs.action_space = action_space
-    ANCILLARY_GOAL_SIZE = 7
+    ANCILLARY_GOAL_SIZE = 5
     SYMBOLIC_ACTION_SIZE = 12
 
     base = common.create_networks(variant, n, mlp, channels, fc_input)
@@ -66,13 +66,13 @@ def experiment(variant):
         variant, n, mlp, channels, fc_input + SYMBOLIC_ACTION_SIZE
     )  # for uvfa goal representation
 
-    bernoulli_dist = distributions.Bernoulli(base.output_size, 3)
+    bernoulli_dist = distributions.Bernoulli(base.output_size, 2)
     item_dist = distributions.Categorical(base.output_size, 6)
     quantity_dist = distributions.Categorical(base.output_size, 5)
     move_dist = distributions.Categorical(base.output_size, 4)
-    clear_dist = distributions.Categorical(base.output_size, 4)
+    # clear_dist = distributions.Categorical(base.output_size, 4)
     dist = distributions.DistributionGeneratorTuple(
-        (bernoulli_dist, item_dist, quantity_dist, move_dist, clear_dist)
+        (bernoulli_dist, item_dist, quantity_dist, move_dist)
     )
 
     control_dist = distributions.Categorical(base.output_size, 14)
