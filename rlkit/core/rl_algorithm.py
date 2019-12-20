@@ -96,7 +96,7 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
         Exploration
         """
         logger.record_dict(
-            self.expl_data_collector.get_diagnostics(), prefix="exploration/"
+            self.expl_data_collector.get_diagnostics(), prefix="exploration_actions/"
         )
 
         expl_paths = self.expl_data_collector.get_epoch_paths()

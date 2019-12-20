@@ -129,7 +129,8 @@ def experiment(variant):
             num_processes=variant["num_processes"],
             obs_space=obs_space,
             symbolic_action_size=SYMBOLIC_ACTION_SIZE,
-        )
+        ),
+        n=n,
     )
 
     expl_controller = CraftController(
@@ -143,7 +144,8 @@ def experiment(variant):
             num_processes=variant["num_processes"],
             obs_space=obs_space,
             symbolic_action_size=SYMBOLIC_ACTION_SIZE,
-        )
+        ),
+        n=n,
     )
     function_env = gym.make(variant["env_name"])
 

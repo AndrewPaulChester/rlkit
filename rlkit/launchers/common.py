@@ -48,18 +48,16 @@ def create_environments(variant):
 
 
 def get_spaces(expl_envs):
-    if isinstance(expl_envs.observation_space, Json):
-        obs_space = expl_envs.observation_space.image
-    else:
-        obs_space = expl_envs.observation_space
-    # if len(obs_shape) == 3 and obs_shape[2] in [1, 3]:  # convert WxHxC into CxWxH
-    #     expl_env = TransposeImage(expl_env, op=[2, 0, 1])
-    #     eval_env = TransposeImage(eval_env, op=[2, 0, 1])
-    # obs_shape = expl_env.observation_space.shape
-    mlp = False
     n = None
+    mlp = False
     channels = None
     fc_input = None
+
+    if isinstance(expl_envs.observation_space, Json):
+        obs_space = expl_envs.observation_space.image
+        n = expl_envs.observation_space.grid_size
+    else:
+        obs_space = expl_envs.observation_space
 
     if isinstance(obs_space, gym.spaces.Tuple):
         obs_shape = obs_space[0].shape
