@@ -62,8 +62,9 @@ def experiment(variant):
     SYMBOLIC_ACTION_SIZE = 12
 
     base = common.create_networks(variant, n, mlp, channels, fc_input)
+
     control_base = common.create_networks(
-        variant, n, mlp, channels, fc_input + SYMBOLIC_ACTION_SIZE
+        variant, n, mlp, channels, fc_input + SYMBOLIC_ACTION_SIZE, conv=base.main
     )  # for uvfa goal representation
 
     bernoulli_dist = distributions.Bernoulli(base.output_size, 2)

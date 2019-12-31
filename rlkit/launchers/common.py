@@ -77,7 +77,7 @@ def get_spaces(expl_envs):
     return (obs_shape, obs_space, action_space, n, mlp, channels, fc_input)
 
 
-def create_networks(variant, n, mlp, channels, fc_input):
+def create_networks(variant, n, mlp, channels, fc_input, conv=None):
     if mlp:
         base = MLPBase(n)
     else:
@@ -85,6 +85,7 @@ def create_networks(variant, n, mlp, channels, fc_input):
             "num_inputs": channels,
             "recurrent": variant["recurrent_policy"],
             "fc_size": fc_input,
+            "conv": conv,
         }
         base = CNNBase(**base_kwargs)
     return base
