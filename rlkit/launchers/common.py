@@ -7,6 +7,7 @@ import rlkit.torch.pytorch_util as ptu
 from a2c_ppo_acktr.envs import make_vec_envs
 from a2c_ppo_acktr import utils
 from a2c_ppo_acktr.model import CNNBase, MLPBase
+from a2c_ppo_acktr import distributions
 
 from gym_taxi.utils.spaces import Json
 
@@ -89,3 +90,24 @@ def create_networks(variant, n, mlp, channels, fc_input, conv=None):
         }
         base = CNNBase(**base_kwargs)
     return base
+
+
+def create_symbolic_action_distributions(action_space, base_output_size):
+    if action_space == "full":
+        bernoulli_dist = distributions.Bernoulli(base_output_size, 2)
+        item_dist = distributions.Categorical(base_output_size, 6)
+        quantity_dist = distributions.Categorical(base_output_size, 5)
+        move_dist = distributions.Categorical(base_output_size, 4)
+        # clear_dist = distributions.Categorical(base_output_size, 4)
+        dist = distributions.DistributionGeneratorTuple(
+            (bernoulli_dist, item_dist, quantity_dist, move_dist)
+        )
+    elif action_space == "move-only":
+        bernoulli_dist = distributions.Bernoulli(base_output_size, 1)
+        move_dist = distributions.Categorical(base_output_size, 4)
+        dist = distributions.DistributionGeneratorTuple((bernoulli_dist, move_dist))
+    elif action_space == "move-continuous":
+        bernoulli_dist = distributions.Bernoulli(base_output_size, 1)
+        move_dist = distributions.DiagGaussian(base_output_size, 2)
+        dist = distributions.DistributionGeneratorTuple((bernoulli_dist, move_dist))
+    return dist
