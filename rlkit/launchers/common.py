@@ -67,6 +67,7 @@ def get_spaces(expl_envs):
     elif len(obs_space.shape) == 1:
         obs_shape = obs_space.shape
         n = obs_shape[0]
+        fc_input = 0
         mlp = True
     else:
         obs_shape = obs_space.shape
@@ -80,7 +81,10 @@ def get_spaces(expl_envs):
 
 def create_networks(variant, n, mlp, channels, fc_input, conv=None):
     if mlp:
-        base = MLPBase(n)
+        if fc_input:
+            base = MLPBase(n + fc_input)
+        else:
+            base = MLPBase(n)
     else:
         base_kwargs = {
             "num_inputs": channels,
@@ -110,4 +114,11 @@ def create_symbolic_action_distributions(action_space, base_output_size):
         bernoulli_dist = distributions.Bernoulli(base_output_size, 1)
         move_dist = distributions.DiagGaussian(base_output_size, 2)
         dist = distributions.DistributionGeneratorTuple((bernoulli_dist, move_dist))
+    elif action_space == "move-uniform":
+        bernoulli_dist = distributions.Bernoulli(base_output_size, 1)
+        move_x = distributions.Categorical(base_output_size, 9)
+        move_y = distributions.Categorical(base_output_size, 9)
+        dist = distributions.DistributionGeneratorTuple(
+            (bernoulli_dist, move_x, move_y)
+        )
     return dist
