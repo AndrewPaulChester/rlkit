@@ -19,12 +19,10 @@ from rlkit.samplers.data_collector import MdpStepCollector, MdpPathCollector
 from a2c_ppo_acktr import utils
 from a2c_ppo_acktr.envs import TransposeImage, make_vec_envs
 from a2c_ppo_acktr.model import CNNBase, create_output_distribution
-from a2c_ppo_acktr.wrappers import (
-    WrappedPolicy,
-    A2CTrainer,
-    RolloutStepCollector,
-    TorchIkostrikovRLAlgorithm,
-)
+from a2c_ppo_acktr.wrappers.policies import WrappedPolicy
+from a2c_ppo_acktr.wrappers.trainers import A2CTrainer
+from a2c_ppo_acktr.wrappers.data_collectors import RolloutStepCollector
+from a2c_ppo_acktr.wrappers.algorithms import TorchIkostrikovRLAlgorithm
 
 
 def experiment(variant):

@@ -7,6 +7,7 @@ import rlkit.torch.pytorch_util as ptu
 from a2c_ppo_acktr.envs import make_vec_envs
 from a2c_ppo_acktr import utils
 from a2c_ppo_acktr.model import CNNBase, MLPBase
+from a2c_ppo_acktr import distributions
 
 from gym_taxi.utils.spaces import Json
 
@@ -48,18 +49,16 @@ def create_environments(variant):
 
 
 def get_spaces(expl_envs):
-    if isinstance(expl_envs.observation_space, Json):
-        obs_space = expl_envs.observation_space.image
-    else:
-        obs_space = expl_envs.observation_space
-    # if len(obs_shape) == 3 and obs_shape[2] in [1, 3]:  # convert WxHxC into CxWxH
-    #     expl_env = TransposeImage(expl_env, op=[2, 0, 1])
-    #     eval_env = TransposeImage(eval_env, op=[2, 0, 1])
-    # obs_shape = expl_env.observation_space.shape
-    mlp = False
     n = None
+    mlp = False
     channels = None
     fc_input = None
+
+    if isinstance(expl_envs.observation_space, Json):
+        obs_space = expl_envs.observation_space.image
+        n = expl_envs.observation_space.grid_size
+    else:
+        obs_space = expl_envs.observation_space
 
     if isinstance(obs_space, gym.spaces.Tuple):
         obs_shape = obs_space[0].shape
@@ -68,6 +67,7 @@ def get_spaces(expl_envs):
     elif len(obs_space.shape) == 1:
         obs_shape = obs_space.shape
         n = obs_shape[0]
+        fc_input = 0
         mlp = True
     else:
         obs_shape = obs_space.shape
@@ -79,14 +79,46 @@ def get_spaces(expl_envs):
     return (obs_shape, obs_space, action_space, n, mlp, channels, fc_input)
 
 
-def create_networks(variant, n, mlp, channels, fc_input):
+def create_networks(variant, n, mlp, channels, fc_input, conv=None):
     if mlp:
-        base = MLPBase(n)
+        if fc_input:
+            base = MLPBase(n + fc_input)
+        else:
+            base = MLPBase(n)
     else:
         base_kwargs = {
             "num_inputs": channels,
             "recurrent": variant["recurrent_policy"],
             "fc_size": fc_input,
+            "conv": conv,
         }
         base = CNNBase(**base_kwargs)
     return base
+
+
+def create_symbolic_action_distributions(action_space, base_output_size):
+    if action_space == "full":
+        bernoulli_dist = distributions.Bernoulli(base_output_size, 2)
+        item_dist = distributions.Categorical(base_output_size, 6)
+        quantity_dist = distributions.Categorical(base_output_size, 5)
+        move_dist = distributions.Categorical(base_output_size, 4)
+        # clear_dist = distributions.Categorical(base_output_size, 4)
+        dist = distributions.DistributionGeneratorTuple(
+            (bernoulli_dist, item_dist, quantity_dist, move_dist)
+        )
+    elif action_space == "move-only":
+        bernoulli_dist = distributions.Bernoulli(base_output_size, 1)
+        move_dist = distributions.Categorical(base_output_size, 4)
+        dist = distributions.DistributionGeneratorTuple((bernoulli_dist, move_dist))
+    elif action_space == "move-continuous":
+        bernoulli_dist = distributions.Bernoulli(base_output_size, 1)
+        move_dist = distributions.DiagGaussian(base_output_size, 2)
+        dist = distributions.DistributionGeneratorTuple((bernoulli_dist, move_dist))
+    elif action_space == "move-uniform":
+        bernoulli_dist = distributions.Bernoulli(base_output_size, 1)
+        move_x = distributions.Categorical(base_output_size, 9)
+        move_y = distributions.Categorical(base_output_size, 9)
+        dist = distributions.DistributionGeneratorTuple(
+            (bernoulli_dist, move_x, move_y)
+        )
+    return dist
