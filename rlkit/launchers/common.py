@@ -121,4 +121,13 @@ def create_symbolic_action_distributions(action_space, base_output_size):
         dist = distributions.DistributionGeneratorTuple(
             (bernoulli_dist, move_x, move_y)
         )
+    elif action_space == "rooms":
+        action_dist = distributions.Categorical(base_output_size, 3)
+        move_x = distributions.Categorical(base_output_size, 5)
+        move_y = distributions.Categorical(base_output_size, 5)
+        item_dist = distributions.Categorical(base_output_size, 6)
+        quantity_dist = distributions.Categorical(base_output_size, 5)
+        dist = distributions.DistributionGeneratorTuple(
+            (action_dist, move_x, move_y, item_dist, quantity_dist)
+        )
     return dist
