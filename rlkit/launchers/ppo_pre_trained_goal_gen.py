@@ -59,6 +59,7 @@ def experiment(variant):
     # eval_envs.action_space = action_space
     ANCILLARY_GOAL_SIZE = variant["ancillary_goal_size"]
     SYMBOLIC_ACTION_SIZE = 12
+    GRID_SIZE = 31
 
     base = common.create_networks(variant, n, mlp, channels, fc_input)
     control_base = common.create_networks(
@@ -97,9 +98,9 @@ def experiment(variant):
     loaded_collect_policy = policies["exploration/policy"]
     loaded_collect_policy.rnn_hxs = loaded_collect_policy.rnn_hxs[0].unsqueeze(0)
 
-    eval_collect = CraftController(loaded_collect_policy, n=n)
+    eval_collect = CraftController(loaded_collect_policy, n=GRID_SIZE)
 
-    expl_collect = CraftController(loaded_collect_policy, n=n)
+    expl_collect = CraftController(loaded_collect_policy, n=GRID_SIZE)
 
     # other
     filepath = "/home/achester/anaconda3/envs/goal-gen/.guild/runs/d0e83e3bb84c4dbfa8eae76159d32882/data/params.pkl"  # other
@@ -113,8 +114,8 @@ def experiment(variant):
     loaded_other_policy = policies["exploration/policy"]
     loaded_other_policy.rnn_hxs = loaded_other_policy.rnn_hxs[0].unsqueeze(0)
 
-    eval_other = CraftController(loaded_other_policy, n=n)
-    expl_other = CraftController(loaded_other_policy, n=n)
+    eval_other = CraftController(loaded_other_policy, n=GRID_SIZE)
+    expl_other = CraftController(loaded_other_policy, n=GRID_SIZE)
 
     eval_controller = PretrainedController([eval_collect, eval_other])
     expl_controller = PretrainedController([expl_collect, expl_other])
