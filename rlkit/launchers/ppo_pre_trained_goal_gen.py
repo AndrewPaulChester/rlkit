@@ -57,7 +57,9 @@ def experiment(variant):
     # action_space = gym.spaces.Box(-np.inf, np.inf, (8,))
     # expl_envs.action_space = action_space
     # eval_envs.action_space = action_space
-    ANCILLARY_GOAL_SIZE = variant["ancillary_goal_size"]
+    ANCILLARY_GOAL_SIZE = variant[
+        "ancillary_goal_size"
+    ]  # This is the length of the action space for the learner
     SYMBOLIC_ACTION_SIZE = 12
     GRID_SIZE = 31
 
@@ -103,7 +105,8 @@ def experiment(variant):
     expl_collect = CraftController(loaded_collect_policy, n=GRID_SIZE)
 
     # other
-    filepath = "/home/achester/anaconda3/envs/goal-gen/.guild/runs/d0e83e3bb84c4dbfa8eae76159d32882/data/params.pkl"  # other
+    filepath = "/home/achester/anaconda3/envs/goal-gen/.guild/runs/cf5c31afe0724acd8f6398d77a80443e/data/params.pkl"  # other
+    # filepath = "/home/achester/Documents/symbolic-goal-generation/data/params.pkl"
     with (open(filepath, "rb")) as openfile:
         while True:
             try:

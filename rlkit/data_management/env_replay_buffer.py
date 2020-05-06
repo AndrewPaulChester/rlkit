@@ -47,3 +47,102 @@ class EnvReplayBuffer(SimpleReplayBuffer):
             terminal=terminal,
             **kwargs
         )
+
+
+class PlanReplayBuffer(EnvReplayBuffer):
+    def add_path(self, path):
+        """
+        Add a path to the replay buffer.
+
+        This default implementation naively goes through every step, but you
+        may want to optimize this.
+
+        NOTE: You should NOT call "terminate_episode" after calling add_path.
+        It's assumed that this function handles the episode termination.
+
+        :param path: Dict like one outputted by rlkit.samplers.util.rollout
+        """
+        for (
+            i,
+            (
+                obs,
+                action,
+                explored,
+                reward,
+                next_obs,
+                terminal,
+                agent_info,
+                env_info,
+                plan_length,
+            ),
+        ) in enumerate(
+            zip(
+                path["observations"],
+                path["actions"],
+                path["explored"],
+                path["rewards"],
+                path["next_observations"],
+                path["terminals"],
+                path["agent_infos"],
+                path["env_infos"],
+                path["plan_lengths"],
+            )
+        ):
+            self.add_sample(
+                observation=obs,
+                action=action,
+                explored=explored,
+                reward=reward,
+                next_observation=next_obs,
+                terminal=terminal,
+                agent_info=agent_info,
+                env_info=env_info,
+                plan_length=plan_length,
+            )
+        self.terminate_episode()
+
+    def add_sample(
+        self,
+        observation,
+        action,
+        explored,
+        reward,
+        terminal,
+        next_observation,
+        env_info,
+        plan_length,
+        **kwargs
+    ):
+        if isinstance(self._action_space, Discrete):
+            new_action = np.zeros(self._action_dim)
+            new_action[action] = 1
+        else:
+            new_action = action
+
+        self._observations[self._top] = observation.reshape(-1)
+        self._actions[self._top] = new_action
+        self._explored[self._top] = explored
+        self._rewards[self._top] = reward
+        self._terminals[self._top] = terminal
+        self._plan_lengths[self._top] = plan_length
+        self._next_obs[self._top] = next_observation.reshape(-1)
+
+        # for key in self._env_info_keys:
+        #     self._env_infos[key][self._top] = env_info[key]
+        self._advance()
+
+    def random_batch(self, batch_size):
+        indices = np.random.randint(0, self._size, batch_size)
+        batch = dict(
+            observations=self._observations[indices],
+            actions=self._actions[indices],
+            explored=self._explored[indices],
+            rewards=self._rewards[indices],
+            terminals=self._terminals[indices],
+            next_observations=self._next_obs[indices],
+            plan_lengths=self._plan_lengths[indices],
+        )
+        for key in self._env_info_keys:
+            assert key not in batch.keys()
+            batch[key] = self._env_infos[key][indices]
+        return batch

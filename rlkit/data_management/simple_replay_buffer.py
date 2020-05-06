@@ -26,6 +26,7 @@ class SimpleReplayBuffer(ReplayBuffer):
         # reason about the shape of the data
         self._explored = np.zeros((max_replay_buffer_size, 1), dtype="uint8")
         self._rewards = np.zeros((max_replay_buffer_size, 1))
+        self._plan_lengths = np.ones((max_replay_buffer_size, 1))
         # self._terminals[i] = a terminal was received at time i
         self._terminals = np.zeros((max_replay_buffer_size, 1), dtype="uint8")
         # Define self._env_infos[key][i] to be the return value of env_info[key]

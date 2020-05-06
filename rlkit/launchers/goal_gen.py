@@ -24,17 +24,6 @@ from gym_agent.learn_plan_policy import LearnPlanPolicy
 
 
 def experiment(variant):
-    setup_logger("name-of-experiment", variant=variant)
-    ptu.set_gpu_mode(True)
-
-    expl_env = gym.make(variant["env_name"])
-    eval_env = gym.make(variant["env_name"])
-    obs_dim = expl_env.observation_space.image.shape[1]
-    channels = expl_env.observation_space.image.shape[0]
-    action_dim = SYMBOLIC_ACTION_COUNT
-    symbolic_action_space = gym.spaces.Discrete(SYMBOLIC_ACTION_COUNT)
-    symb_env = gym.make(variant["env_name"])
-    symb_env.action_space = symbolic_action_space
 
     qf = CNN(
         input_width=obs_dim,

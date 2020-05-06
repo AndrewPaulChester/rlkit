@@ -133,11 +133,104 @@ def rollout(env, agent, max_path_length=np.inf, render=False, render_kwargs=None
         observations=observations,
         actions=actions,
         explored=np.array(explored).reshape(-1, 1),
-        rewards=np.array(rewards).reshape(-1, 1),
+        rewards=np.array(rewards, dtype=np.float32).reshape(-1, 1),
         next_observations=next_observations,
         terminals=np.array(terminals).reshape(-1, 1),
         agent_infos=agent_infos,
         env_infos=env_infos,
+    )
+
+
+def intermediate_rollout(
+    env,
+    agent,
+    restart=True,
+    starting_obs=None,
+    max_path_length=np.inf,
+    render=False,
+    render_kwargs=None,
+):
+    """
+    The following value for the following keys will be a 2D array, with the
+    first dimension corresponding to the time dimension.
+     - observations
+     - actions
+     - rewards
+     - next_observations
+     - terminals
+
+    The next two elements will be lists of dictionaries, with the index into
+    the list being the index into the time
+     - agent_infos
+     - env_infos
+    """
+    if render_kwargs is None:
+        render_kwargs = {}
+    observations = []
+    actions = []
+    explored = []
+    rewards = []
+    terminals = []
+    agent_infos = []
+    env_infos = []
+    if restart:
+        o = env.reset()
+        agent.reset()
+    else:
+        o = starting_obs
+    next_o = None
+    path_length = 0
+    if render:
+        env.render(**render_kwargs)
+    while path_length < max_path_length:
+        (a, e), agent_info = agent.get_action(o)
+        try:
+            a = a.item()
+        except AttributeError:
+            pass
+        if isinstance(o, str):
+            o = env.observation_space.converter(o)
+        next_o, r, d, env_info = env.step(a)
+        observations.append(o)
+        rewards.append(r)
+        terminals.append(d)
+        actions.append(a)
+        explored.append(e)
+        agent_infos.append(agent_info)
+        env_infos.append(env_info)
+        path_length += 1
+        step_timeout, step_complete, plan_ended = agent.check_action_status([next_o])
+        if d or step_timeout[0] or plan_ended[0]:
+            break
+        o = next_o
+        if render:
+            env.render(**render_kwargs)
+
+    if isinstance(next_o, str):
+        next_o_converted = env.observation_space.converter(next_o)
+
+    actions = np.array(actions)
+    if len(actions.shape) == 1:
+        actions = np.expand_dims(actions, 1)
+    observations = np.array(observations)
+    if len(observations.shape) == 1:
+        observations = np.expand_dims(observations, 1)
+        next_o_converted = np.array([next_o_converted])
+    next_observations = np.vstack(
+        (observations[1:, :], np.expand_dims(next_o_converted, 0))
+    )
+    return (
+        dict(
+            observations=observations,
+            actions=actions,
+            explored=np.array(explored).reshape(-1, 1),
+            rewards=np.array(rewards, dtype=np.float32).reshape(-1, 1),
+            next_observations=next_observations,
+            terminals=np.array(terminals).reshape(-1, 1),
+            agent_infos=agent_infos,
+            env_infos=env_infos,
+        ),
+        (d, next_o),
     )
 
 
