@@ -216,12 +216,18 @@ class IntermediatePathCollector(MdpPathCollector):
         epoch_score = (
             0 if self._epoch_episodes == 0 else self._epoch_score / self._epoch_episodes
         )
+        explored = [path["explored"][0] for path in self._epoch_paths]
+        paths_explored = (
+            0 if len(explored) == 0 else sum(explored).item() / len(explored)
+        )
+
         stats = OrderedDict(
             [
                 ("num steps total", self._num_steps_total),
                 ("num paths total", self._num_paths_total),
                 ("average score", average_score),
                 ("epoch score", epoch_score),
+                ("plans explored", paths_explored),
             ]
         )
         action_lengths = [

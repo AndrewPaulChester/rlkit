@@ -22,7 +22,7 @@ class DQNTrainer(TorchTrainer):
         discount=0.99,
         reward_scale=1.0,
         adam_eps=1e-5,
-        true_plan_discounting=True,
+        single_plan_discounting=False,
     ):
         super().__init__()
         self.qf = qf
@@ -39,7 +39,7 @@ class DQNTrainer(TorchTrainer):
         self.eval_statistics = OrderedDict()
         self._n_train_steps_total = 0
         self._need_to_update_eval_statistics = True
-        self.true_plan_discounting = true_plan_discounting
+        self.single_plan_discounting = single_plan_discounting
 
     def train_from_torch(self, batch):
         rewards = batch["rewards"] * self.reward_scale
@@ -48,7 +48,7 @@ class DQNTrainer(TorchTrainer):
         actions = batch["actions"]
         next_obs = batch["next_observations"]
         plan_lengths = batch["plan_lengths"]
-        if not self.true_plan_discounting:
+        if self.single_plan_discounting:
             plan_lengths = torch.ones_like(plan_lengths)
 
         """
