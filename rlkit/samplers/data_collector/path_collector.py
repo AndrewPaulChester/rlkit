@@ -111,6 +111,7 @@ class IntermediatePathCollector(MdpPathCollector):
         render_kwargs=None,
         rollout=rollout_functions.rollout,
         gamma=0.99,
+        single_plan_discounting=False,
     ):
         if render_kwargs is None:
             render_kwargs = {}
@@ -122,6 +123,7 @@ class IntermediatePathCollector(MdpPathCollector):
         self._render_kwargs = render_kwargs
         self._rollout = rollout
         self.gamma = gamma
+        self.single_plan_discounting = single_plan_discounting
 
         self._num_steps_total = 0
         self._num_paths_total = 0
@@ -193,7 +195,8 @@ class IntermediatePathCollector(MdpPathCollector):
 
         acc_reward = 0
         for i, r in enumerate(reversed(path["rewards"])):
-            acc_reward *= self.gamma
+            if not self.single_plan_discounting:
+                acc_reward *= self.gamma
             acc_reward += r
             self._total_score += r.item()
             self._epoch_score += r.item()

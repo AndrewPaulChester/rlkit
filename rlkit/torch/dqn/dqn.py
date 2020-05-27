@@ -23,6 +23,7 @@ class DQNTrainer(TorchTrainer):
         reward_scale=1.0,
         adam_eps=1e-5,
         single_plan_discounting=False,
+        huber_loss=False,
     ):
         super().__init__()
         self.qf = qf
@@ -40,6 +41,7 @@ class DQNTrainer(TorchTrainer):
         self._n_train_steps_total = 0
         self._need_to_update_eval_statistics = True
         self.single_plan_discounting = single_plan_discounting
+        self.huber_loss = huber_loss
 
     def train_from_torch(self, batch):
         rewards = batch["rewards"] * self.reward_scale
@@ -65,6 +67,10 @@ class DQNTrainer(TorchTrainer):
         y_target = y_target.detach()
         # actions is a one-hot vector
         y_pred = torch.sum(self.qf(obs) * actions, dim=1, keepdim=True)
+        # huber loss correction.
+        if self.huber_loss:
+            y_target = torch.max(y_target, y_pred.sub(1))
+            y_target = torch.min(y_target, y_pred.add(1))
         qf_loss = self.qf_criterion(y_pred, y_target)
 
         """

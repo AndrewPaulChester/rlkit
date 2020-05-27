@@ -12,6 +12,7 @@ from rlkit.exploration_strategies.epsilon_greedy import (
     LinearEpsilonGreedy,
 )
 from rlkit.policies.argmax import ArgmaxDiscretePolicy
+from rlkit.policies.softmax import SoftmaxDiscretePolicy
 from rlkit.torch.dqn.dqn import DQNTrainer
 from rlkit.torch.dqn.double_dqn import DoubleDQNTrainer
 from rlkit.torch.conv_networks import CNN
@@ -51,8 +52,8 @@ def experiment(variant):
     setup_logger("name-of-experiment", variant=variant)
     ptu.set_gpu_mode(True)
 
-    expl_env = gym.make(variant["env_name"])
-    eval_env = gym.make(variant["env_name"])
+    expl_env = gym.make(variant["env_name"], seed=5)
+    eval_env = gym.make(variant["env_name"], seed=5)
 
     ANCILLARY_GOAL_SIZE = 16
     SYMBOLIC_ACTION_SIZE = (
@@ -107,8 +108,8 @@ def experiment(variant):
     expl_collect = CraftController(loaded_collect_policy, n=GRID_SIZE)
 
     # other
-    # filepath = "/home/achester/anaconda3/envs/goal-gen/.guild/runs/d0e83e3bb84c4dbfa8eae76159d32882/data/params.pkl"  # other
-    filepath = "/home/achester/Documents/symbolic-goal-generation/data/params.pkl"
+    filepath = "/home/achester/anaconda3/envs/goal-gen/.guild/runs/cf5c31afe0724acd8f6398d77a80443e/data/params.pkl"  # other
+    # filepath = "/home/achester/Documents/symbolic-goal-generation/data/params.pkl"
     with (open(filepath, "rb")) as openfile:
         while True:
             try:
@@ -127,7 +128,11 @@ def experiment(variant):
     function_env = gym.make(variant["env_name"])
 
     qf_criterion = nn.MSELoss()
-    eval_learner = ArgmaxDiscretePolicy(qf)
+    if variant["softmax"]:
+        eval_learner = SoftmaxDiscretePolicy(qf, variant["temperature"])
+    else:
+        eval_learner = ArgmaxDiscretePolicy(qf)
+
     expl_learner = PolicyWrappedWithExplorationStrategy(
         LinearEpsilonGreedy(
             symbolic_action_space, anneal_schedule=variant["anneal_schedule"]
@@ -159,6 +164,7 @@ def experiment(variant):
         rollout=intermediate_rollout,
         gamma=1,
         render=variant["render"],
+        single_plan_discounting=variant["trainer_kwargs"]["single_plan_discounting"],
     )
     expl_path_collector = IntermediatePathCollector(
         expl_env,
@@ -166,36 +172,8 @@ def experiment(variant):
         rollout=intermediate_rollout,
         gamma=variant["trainer_kwargs"]["discount"],
         render=variant["render"],
+        single_plan_discounting=variant["trainer_kwargs"]["single_plan_discounting"],
     )
-
-    # eval_path_collector = ThreeTierStepCollector(
-    #     eval_env,
-    #     eval_policy,
-    #     ptu.device,
-    #     ANCILLARY_GOAL_SIZE,
-    #     SYMBOLIC_ACTION_SIZE,
-    #     max_num_epoch_paths_saved=variant["algorithm_kwargs"][
-    #         "num_eval_steps_per_epoch"
-    #     ],
-    #     num_processes=variant["num_processes"],
-    #     render=variant["render"],
-    #     gamma=1,
-    #     no_plan_penalty=True,
-    #     meta_num_epoch_paths=variant["meta_num_steps"],
-    # )
-    # expl_path_collector = ThreeTierStepCollector(
-    #     expl_env,
-    #     expl_policy,
-    #     ptu.device,
-    #     ANCILLARY_GOAL_SIZE,
-    #     SYMBOLIC_ACTION_SIZE,
-    #     max_num_epoch_paths_saved=variant["num_steps"],
-    #     num_processes=variant["num_processes"],
-    #     render=variant["render"],
-    #     gamma=variant["trainer_kwargs"]["gamma"],
-    #     no_plan_penalty=variant.get("no_plan_penalty", False),
-    #     meta_num_epoch_paths=variant["meta_num_steps"],
-    # )
 
     if variant["double_dqn"]:
         trainer = DoubleDQNTrainer(
