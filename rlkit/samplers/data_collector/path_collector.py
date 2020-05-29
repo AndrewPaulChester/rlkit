@@ -54,11 +54,13 @@ class MdpPathCollector(PathCollector):
                 render=self._render,
                 render_kwargs=self._render_kwargs,
             )
+            path_len = len(path["actions"])
             # adding to handle intermediate experience
             if "intermediate_experience" in (path["env_infos"][0]):
-                path = self.extend_path(path)
+                path = self.extend_path(path,path_len,max_path_length_this_loop)
 
             path_len = len(path["actions"])
+
             if (
                 path_len != max_path_length
                 and not path["terminals"][-1]
@@ -72,34 +74,32 @@ class MdpPathCollector(PathCollector):
         self._epoch_paths.extend(paths)
         return paths
 
-    def extend_path(self, path):
+    def extend_path(self, path, path_len, max_path_length_this_loop):
         # adding to handle intermediate experience
-        n = 
-        
-        ai = path["agent_infos"][0]["agent_info_learn"]
-        # for k, v in ai.items():
-        #     if isinstance(v, Tensor):
-        #         ai[k] = ptu.get_numpy(v)
+        length = path_len
 
-        # e = path["explored"][0, 0].item()
-        e = ai["explored"]
-        action = ai["subgoal"]
-        next_obs = path["next_observations"][-1]
+        for i in range(path_len):
+            action = path["actions"][0]
+            explored = path["explored"][0]
+            agent_info = path["agent_infos"][0]
+            next_obs = path["next_observations"][0]
+            env_info = path["env_infos"][0]
+            terminal = path["terminals"][0]
 
-        path["explored"].fill(e)
-        path["actions"].fill(action)
-        path["agent_infos"] = [{}] * path_len
-        path["next_observations"][:] = next_obs
-        path["plan_lengths"] = list(reversed(range(1, path_len + 1)))
+            for (obs,reward) in env_info.pop("intermediate_experience"):
+                path["actions"].append(action)
+                path["explored"].append(explored)
+                path["agent_infos"].append(agent_info)
+                path["next_observations"].append(next_obs)
+                path["terminals"].append(terminal)
+                path["observations"].append(obs)
+                path["rewards"].append(reward)
+                path["env_infos"].append(env_info)
+                length+=1
+                if length == max_path_length_this_loop:
+                    return path
 
-        acc_reward = 0
-        for i, r in enumerate(reversed(path["rewards"])):
-            if not self.single_plan_discounting:
-                acc_reward *= self.gamma
-            acc_reward += r
-            self._total_score += r.item()
-            self._epoch_score += r.item()
-            path["rewards"][path_len - i - 1] = acc_reward
+
 
         return path
 
