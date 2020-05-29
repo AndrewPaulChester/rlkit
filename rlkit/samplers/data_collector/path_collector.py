@@ -54,6 +54,10 @@ class MdpPathCollector(PathCollector):
                 render=self._render,
                 render_kwargs=self._render_kwargs,
             )
+            # adding to handle intermediate experience
+            if "intermediate_experience" in (path["env_infos"][0]):
+                path = self.extend_path(path)
+
             path_len = len(path["actions"])
             if (
                 path_len != max_path_length
@@ -67,6 +71,37 @@ class MdpPathCollector(PathCollector):
         self._num_steps_total += num_steps_collected
         self._epoch_paths.extend(paths)
         return paths
+
+    def extend_path(self, path):
+        # adding to handle intermediate experience
+        n = 
+        
+        ai = path["agent_infos"][0]["agent_info_learn"]
+        # for k, v in ai.items():
+        #     if isinstance(v, Tensor):
+        #         ai[k] = ptu.get_numpy(v)
+
+        # e = path["explored"][0, 0].item()
+        e = ai["explored"]
+        action = ai["subgoal"]
+        next_obs = path["next_observations"][-1]
+
+        path["explored"].fill(e)
+        path["actions"].fill(action)
+        path["agent_infos"] = [{}] * path_len
+        path["next_observations"][:] = next_obs
+        path["plan_lengths"] = list(reversed(range(1, path_len + 1)))
+
+        acc_reward = 0
+        for i, r in enumerate(reversed(path["rewards"])):
+            if not self.single_plan_discounting:
+                acc_reward *= self.gamma
+            acc_reward += r
+            self._total_score += r.item()
+            self._epoch_score += r.item()
+            path["rewards"][path_len - i - 1] = acc_reward
+
+        return path
 
     def get_epoch_paths(self):
         return self._epoch_paths

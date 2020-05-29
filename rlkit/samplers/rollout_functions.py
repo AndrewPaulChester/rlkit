@@ -114,6 +114,11 @@ def rollout(env, agent, max_path_length=np.inf, render=False, render_kwargs=None
         explored.append(e)
         agent_infos.append(agent_info)
         env_infos.append(env_info)
+
+        # ADDED THIS SECTION TO HANDLE INTERMEDIATE EXPERIENCE
+        if "intermediate_experience" in env_info:
+            path_length += len(env_info["intermediate_experience"])
+
         path_length += 1
         if d:
             break
