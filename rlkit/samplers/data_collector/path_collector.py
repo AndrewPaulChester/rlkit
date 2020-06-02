@@ -1,6 +1,7 @@
-from collections import deque, OrderedDict, Counter
+from collections import deque, OrderedDict, Counter, defaultdict
 
 from torch import Tensor
+import numpy as np
 
 import rlkit.torch.pytorch_util as ptu
 
@@ -31,6 +32,11 @@ class MdpPathCollector(PathCollector):
 
         self._num_steps_total = 0
         self._num_paths_total = 0
+        self._total_score = 0
+        self._epoch_score = 0
+        self._num_episodes = 0
+        self._epoch_episodes = 0
+        self._plan_lengths = defaultdict(list)
 
     def collect_new_paths(self, max_path_length, num_steps, discard_incomplete_paths):
         """
@@ -57,7 +63,7 @@ class MdpPathCollector(PathCollector):
             path_len = len(path["actions"])
             # adding to handle intermediate experience
             if "intermediate_experience" in (path["env_infos"][0]):
-                path = self.extend_path(path,path_len,max_path_length_this_loop)
+                path = self.extend_path(path, path_len, max_path_length_this_loop)
 
             path_len = len(path["actions"])
 
@@ -77,29 +83,57 @@ class MdpPathCollector(PathCollector):
     def extend_path(self, path, path_len, max_path_length_this_loop):
         # adding to handle intermediate experience
         length = path_len
+        path_score = sum(path["rewards"]).item()
+        self._total_score += path_score
+        self._epoch_score += path_score
+        episodes = sum(path["terminals"]).item()
+        self._num_episodes += episodes
+        self._epoch_episodes += episodes
+
+        path["plan_lengths"] = [1] * length
 
         for i in range(path_len):
-            action = path["actions"][0]
-            explored = path["explored"][0]
-            agent_info = path["agent_infos"][0]
-            next_obs = path["next_observations"][0]
-            env_info = path["env_infos"][0]
-            terminal = path["terminals"][0]
+            action = path["actions"][i]
+            explored = path["explored"][i]
+            agent_info = path["agent_infos"][i]
+            next_obs = path["next_observations"][i]
+            env_info = path["env_infos"][i]
+            terminal = path["terminals"][i]
 
-            for (obs,reward) in env_info.pop("intermediate_experience"):
-                path["actions"].append(action)
-                path["explored"].append(explored)
-                path["agent_infos"].append(agent_info)
-                path["next_observations"].append(next_obs)
-                path["terminals"].append(terminal)
-                path["observations"].append(obs)
-                path["rewards"].append(reward)
-                path["env_infos"].append(env_info)
-                length+=1
+            plan_length = len(env_info["intermediate_experience"]) + 1
+            self._plan_lengths[action.item()].append(plan_length)
+            path["plan_lengths"][i] = plan_length
+
+            for (obs, reward) in env_info.pop("intermediate_experience"):
+                path["actions"] = np.concatenate(
+                    (path["actions"], np.expand_dims(action, 0))
+                )
+                path["explored"] = np.concatenate(
+                    (path["explored"], np.expand_dims(explored, 0))
+                )
+                path["agent_infos"] = np.concatenate(
+                    (path["agent_infos"], np.expand_dims(agent_info, 0))
+                )
+                path["next_observations"] = np.concatenate(
+                    (path["next_observations"], np.expand_dims(next_obs, 0))
+                )
+                path["terminals"] = np.concatenate(
+                    (path["terminals"], np.expand_dims(terminal, 0))
+                )
+                path["observations"] = np.concatenate(
+                    (path["observations"], np.expand_dims(obs, 0))
+                )
+                path["rewards"] = np.concatenate(
+                    (path["rewards"], np.expand_dims(np.expand_dims(reward, 0), 0))
+                )
+                path["env_infos"] = np.concatenate(
+                    (path["env_infos"], np.expand_dims(env_info, 0))
+                )
+                plan_length -= 1
+                path["plan_lengths"].append(plan_length)
+                length += 1
                 if length == max_path_length_this_loop:
                     return path
-
-
 
         return path
 
@@ -107,6 +141,10 @@ class MdpPathCollector(PathCollector):
         return self._epoch_paths
 
     def end_epoch(self, epoch):
+        self._epoch_score = 0
+        self._epoch_episodes = 0
+        self._plan_lengths = defaultdict(list)
+
         self._epoch_paths = deque(maxlen=self._max_num_epoch_paths_saved)
         try:
             self._policy.learner.es.anneal_epsilon()
@@ -114,13 +152,39 @@ class MdpPathCollector(PathCollector):
             pass
 
     def get_diagnostics(self):
-        path_lens = [len(path["actions"]) for path in self._epoch_paths]
+        average_score = (
+            0 if self._num_episodes == 0 else self._total_score / self._num_episodes
+        )
+        epoch_score = (
+            0 if self._epoch_episodes == 0 else self._epoch_score / self._epoch_episodes
+        )
+
         stats = OrderedDict(
             [
                 ("num steps total", self._num_steps_total),
                 ("num paths total", self._num_paths_total),
+                ("average score", average_score),
+                ("epoch score", epoch_score),
             ]
         )
+
+        if len(self._plan_lengths) > 0:
+
+            action_lengths = [0] * 16  # TODO: fix magic number
+            action_counts = [0] * 16
+            for action, lengths in self._plan_lengths.items():
+                action_lengths[action] = sum(lengths)
+                action_counts[action] = len(lengths)
+
+            a = {}
+            for i in range(16):
+                if action_counts[i] > 0:
+                    action_lengths[i] = action_lengths[i] / action_counts[i]
+                a[f"action {i} count"] = action_counts[i]
+                a[f"action {i} length"] = action_lengths[i]
+            stats.update(a)
+
+        path_lens = [len(path["actions"]) for path in self._epoch_paths]
         stats.update(
             create_stats_ordered_dict(
                 "path length", path_lens, always_show_all_stats=True
@@ -130,6 +194,15 @@ class MdpPathCollector(PathCollector):
 
     def get_snapshot(self):
         return dict(env=self._env, policy=self._policy)
+
+
+def pprint(path):
+    for p in path:
+        s = "["
+        for i in p:
+            s += f"{i:.2f},"
+        s = s[:-1] + "]"
+        print(s)
 
 
 class IntermediatePathCollector(MdpPathCollector):
