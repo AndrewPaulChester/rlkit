@@ -44,8 +44,40 @@
                 "--env-name",
                 "abstract-rooms-craft-v2",
                 "--render",
-                // "--num-steps",
-                // "50"
+                "--num-steps",
+                "50"
+                "--anneal-schedule",
+                "5",
+                // "--seed",
+                // "4"
+
+            ]
+        }, 
+        {
+            "name": "Python: dqn lottery",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "--env-name",
+                "craft-lottery-v0",
+                // "--render",
+                "--num-steps",
+                "2000",
+                "--single-plan-discounting",
+                "--discount-rate",
+                "0.95",
+                "--init-w",
+                "0.001",
+                "--b-init-value",
+                "0.01"
+
+                // "--anneal-schedule",
+                // "5",
+                // "--seed",
+                // "4"
+
             ]
         }, 
         {

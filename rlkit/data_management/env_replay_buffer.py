@@ -62,6 +62,7 @@ class PlanReplayBuffer(EnvReplayBuffer):
 
         :param path: Dict like one outputted by rlkit.samplers.util.rollout
         """
+        # print(path["rewards"].mean())
         for (
             i,
             (
