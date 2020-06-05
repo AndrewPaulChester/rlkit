@@ -154,6 +154,7 @@ def intermediate_rollout(
     max_path_length=np.inf,
     render=False,
     render_kwargs=None,
+    experience_interval=1,
 ):
     """
     The following value for the following keys will be a 2D array, with the
@@ -185,6 +186,7 @@ def intermediate_rollout(
         o = starting_obs
     next_o = None
     path_length = 0
+    i = 0
     if render:
         env.render(**render_kwargs)
     while path_length < max_path_length:
@@ -203,7 +205,10 @@ def intermediate_rollout(
         explored.append(e)
         agent_infos.append(agent_info)
         env_infos.append(env_info)
-        path_length += 1
+
+        if i % experience_interval == 0:
+            path_length += 1
+        i += 1
         step_timeout, step_complete, plan_ended = agent.check_action_status([next_o])
         if d or step_timeout[0] or plan_ended[0]:
             break

@@ -165,6 +165,7 @@ def experiment(variant):
         gamma=1,
         render=variant["render"],
         single_plan_discounting=variant["trainer_kwargs"]["single_plan_discounting"],
+        experience_interval=variant["experience_interval"],
     )
     expl_path_collector = IntermediatePathCollector(
         expl_env,
@@ -173,6 +174,7 @@ def experiment(variant):
         gamma=variant["trainer_kwargs"]["discount"],
         render=variant["render"],
         single_plan_discounting=variant["trainer_kwargs"]["single_plan_discounting"],
+        experience_interval=variant["experience_interval"],
     )
 
     if variant["double_dqn"]:

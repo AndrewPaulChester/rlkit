@@ -149,7 +149,10 @@ class MdpPathCollector(PathCollector):
         try:
             self._policy.learner.es.anneal_epsilon()
         except AttributeError:
-            pass
+            try:
+                self._policy.es.anneal_epsilon()
+            except AttributeError:
+                print("not using linear annealing, or problem somewhere")
 
     def get_diagnostics(self):
         average_score = (
@@ -220,6 +223,7 @@ class IntermediatePathCollector(MdpPathCollector):
         rollout=rollout_functions.rollout,
         gamma=0.99,
         single_plan_discounting=False,
+        experience_interval=1,
     ):
         if render_kwargs is None:
             render_kwargs = {}
@@ -232,6 +236,7 @@ class IntermediatePathCollector(MdpPathCollector):
         self._rollout = rollout
         self.gamma = gamma
         self.single_plan_discounting = single_plan_discounting
+        self.experience_interval = experience_interval
 
         self._num_steps_total = 0
         self._num_paths_total = 0
@@ -265,6 +270,7 @@ class IntermediatePathCollector(MdpPathCollector):
                 max_path_length=max_path_length_this_loop,
                 render=self._render,
                 render_kwargs=self._render_kwargs,
+                experience_interval=self.experience_interval,
             )
             path_len = len(path["actions"])
             if (
@@ -274,8 +280,9 @@ class IntermediatePathCollector(MdpPathCollector):
             ):
                 break
             converted_path = self.extract_intermediate_experience(path, path_len)
+            path_len = len(converted_path["actions"])
             num_steps_collected += path_len
-            paths.append(path)
+            paths.append(converted_path)
         self._num_paths_total += len(paths)
         self._num_steps_total += num_steps_collected
         self._epoch_episodes += sum([p["terminals"].sum() for p in paths])
@@ -310,7 +317,11 @@ class IntermediatePathCollector(MdpPathCollector):
             self._epoch_score += r.item()
             path["rewards"][path_len - i - 1] = acc_reward
 
-        return path
+        new_path = {}
+        for k, v in path.items():
+            new_path[k] = v[:: self.experience_interval]
+
+        return new_path
 
     def get_snapshot(self):
         return dict(
