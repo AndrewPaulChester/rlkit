@@ -31,7 +31,7 @@ from a2c_ppo_acktr.wrappers.data_collectors import RolloutStepCollector
 from a2c_ppo_acktr.wrappers.algorithms import TorchIkostrikovRLAlgorithm
 from a2c_ppo_acktr import distributions
 
-
+import gym_craft.lottery
 from gym_taxi.utils.spaces import Json
 
 
@@ -126,4 +126,3 @@ def experiment(variant):
     algorithm.to(ptu.device)
     # missing: device back in sync
     algorithm.train()
-

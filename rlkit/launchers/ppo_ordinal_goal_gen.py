@@ -34,6 +34,8 @@ from a2c_ppo_acktr import distributions
 from a2c_ppo_acktr import distributions
 
 from gym_agent.learn_plan_policy import LearnPlanPolicy
+from gym_agent.controller import TaxiController
+from gym_agent.planner import FDPlanner
 
 
 def experiment(variant):
@@ -66,6 +68,10 @@ def experiment(variant):
         (bernoulli_dist, continuous_dist, passenger_dist, delivered_dist)
     )
 
+    planner = FDPlanner()
+    controller = TaxiController()
+    function_env = gym.make(variant["env_name"])
+
     eval_policy = LearnPlanPolicy(
         WrappedPolicy(
             obs_shape,
@@ -79,7 +85,10 @@ def experiment(variant):
         ),
         num_processes=variant["num_processes"],
         vectorised=True,
-        json_to_screen=expl_envs.observation_space.converter,
+        controller=controller,
+        planner=planner,
+        env=function_env
+        # json_to_screen=expl_envs.observation_space.converter,
     )
     expl_policy = LearnPlanPolicy(
         WrappedPolicy(
@@ -94,7 +103,10 @@ def experiment(variant):
         ),
         num_processes=variant["num_processes"],
         vectorised=True,
-        json_to_screen=expl_envs.observation_space.converter,
+        controller=controller,
+        planner=planner,
+        env=function_env
+        # json_to_screen=expl_envs.observation_space.converter,
     )
 
     eval_path_collector = HierarchicalStepCollector(
@@ -146,4 +158,3 @@ def experiment(variant):
     algorithm.to(ptu.device)
     # missing: device back in sync
     algorithm.train()
-
