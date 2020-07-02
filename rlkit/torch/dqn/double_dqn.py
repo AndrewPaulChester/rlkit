@@ -13,6 +13,12 @@ class DoubleDQNTrainer(DQNTrainer):
         obs = batch["observations"]
         actions = batch["actions"]
         next_obs = batch["next_observations"]
+        try:
+            plan_lengths = batch["plan_lengths"]
+            if self.single_plan_discounting:
+                plan_lengths = torch.ones_like(plan_lengths)
+        except KeyError as e:
+            plan_lengths = torch.ones_like(rewards)
 
         """
         Compute loss
@@ -20,10 +26,18 @@ class DoubleDQNTrainer(DQNTrainer):
 
         best_action_idxs = self.qf(next_obs).max(1, keepdim=True)[1]
         target_q_values = self.target_qf(next_obs).gather(1, best_action_idxs).detach()
-        y_target = rewards + (1.0 - terminals) * self.discount * target_q_values
+        y_target = (
+            rewards
+            + (1.0 - terminals)
+            * torch.pow(self.discount, plan_lengths)
+            * target_q_values
+        )
         y_target = y_target.detach()
         # actions is a one-hot vector
         y_pred = torch.sum(self.qf(obs) * actions, dim=1, keepdim=True)
+        if self.huber_loss:
+            y_target = torch.max(y_target, y_pred.sub(1))
+            y_target = torch.min(y_target, y_pred.add(1))
         qf_loss = self.qf_criterion(y_pred, y_target)
 
         """

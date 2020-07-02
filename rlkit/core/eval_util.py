@@ -6,6 +6,7 @@ from collections import OrderedDict
 from numbers import Number
 
 import numpy as np
+import torch
 
 import rlkit.pythonplusplus as ppp
 
@@ -38,7 +39,7 @@ def get_generic_path_information(paths, stat_prefix=""):
     )[0] / sum([len(path["explored"]) for path in paths])
     statistics[stat_prefix + "Average Returns"] = get_average_returns(paths)
 
-    for info_key in ["env_infos", "agent_infos"]:
+    for info_key in ["agent_infos"]:
         if info_key in paths[0]:
             all_env_infos = [
                 ppp.list_of_dicts__to__dict_of_lists(p[info_key]) for p in paths
@@ -75,6 +76,8 @@ def get_action_histograms(paths, stat_prefix=""):
     Get an OrderedDict with a bunch of statistic names and values.
     """
     # print(paths[0]['agent_infos'][0]['dist'].shape)
+    if len(paths[0]["agent_infos"]) == 0:  # catching interim experience case
+        return interim_action_histograms(paths)
     if "dist" not in paths[0]["agent_infos"][0]:
         return {}  # early exit for algos with no probabilities
     statistics = OrderedDict()
@@ -98,6 +101,12 @@ def get_action_histograms(paths, stat_prefix=""):
     return statistics
 
 
+def interim_action_histograms(paths):
+    statistics = OrderedDict()
+    statistics[0] = [p["actions"][0] for p in paths]
+    return statistics
+
+
 def get_average_returns(paths):
     returns = [sum(path["rewards"]) for path in paths]
     return np.mean(returns)
@@ -114,7 +123,6 @@ def create_stats_ordered_dict(
     if len(data) == 0:
         return OrderedDict()
 
-    if isinstance(data, tuple):
         ordered_dict = OrderedDict()
         for number, d in enumerate(data):
             sub_dict = create_stats_ordered_dict("{0}_{1}".format(name, number), d)
@@ -128,6 +136,10 @@ def create_stats_ordered_dict(
             pass
         else:
             data = np.concatenate(data)
+
+    if isinstance(data, np.ndarray) and isinstance(data[0], torch.Tensor):
+        for i, d in enumerate(data):
+            data[i] = d.item()
 
     if isinstance(data, np.ndarray) and data.size == 1 and not always_show_all_stats:
         return OrderedDict({name: float(data)})

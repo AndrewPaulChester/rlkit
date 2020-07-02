@@ -65,8 +65,11 @@ class Mlp(nn.Module):
         for i, next_size in enumerate(hidden_sizes):
             fc = nn.Linear(in_size, next_size)
             in_size = next_size
-            hidden_init(fc.weight)
-            fc.bias.data.fill_(b_init_value)
+            # hidden_init(fc.weight)
+            # fc.bias.data.fill_(b_init_value)
+
+            fc.weight.data.uniform_(-init_w, init_w)
+            fc.bias.data.uniform_(b_init_value, b_init_value)
             self.__setattr__("fc{}".format(i), fc)
             self.fcs.append(fc)
 

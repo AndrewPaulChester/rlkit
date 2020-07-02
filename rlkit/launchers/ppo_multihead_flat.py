@@ -25,13 +25,13 @@ from a2c_ppo_acktr import utils
 from a2c_ppo_acktr.envs import TransposeImage, make_vec_envs
 from a2c_ppo_acktr.model import CNNBase, create_output_distribution, MLPBase
 
-from a2c_ppo_acktr.wrappers.policies import WrappedPolicy
+from a2c_ppo_acktr.wrappers.policies import WrappedPolicy, MultiPolicy
 from a2c_ppo_acktr.wrappers.trainers import PPOTrainer
 from a2c_ppo_acktr.wrappers.data_collectors import RolloutStepCollector
 from a2c_ppo_acktr.wrappers.algorithms import TorchIkostrikovRLAlgorithm
 from a2c_ppo_acktr import distributions
 
-import gym_craft.lottery
+
 from gym_taxi.utils.spaces import Json
 
 
@@ -54,7 +54,8 @@ def experiment(variant):
 
     dist = create_output_distribution(action_space, base.output_size)
 
-    eval_policy = WrappedPolicy(
+    NUM_OPTIONS = 14
+    eval_policy = MultiPolicy(
         obs_shape,
         action_space,
         ptu.device,
@@ -63,8 +64,9 @@ def experiment(variant):
         dist=dist,
         num_processes=variant["num_processes"],
         obs_space=obs_space,
+        num_options=NUM_OPTIONS,
     )
-    expl_policy = WrappedPolicy(
+    expl_policy = MultiPolicy(
         obs_shape,
         action_space,
         ptu.device,
@@ -73,6 +75,7 @@ def experiment(variant):
         dist=dist,
         num_processes=variant["num_processes"],
         obs_space=obs_space,
+        num_options=NUM_OPTIONS,
     )
 
     if action_space.__class__.__name__ == "Tuple":
@@ -126,3 +129,4 @@ def experiment(variant):
     algorithm.to(ptu.device)
     # missing: device back in sync
     algorithm.train()
+

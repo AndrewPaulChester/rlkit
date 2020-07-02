@@ -1,4 +1,5 @@
 import abc
+import numpy as np
 
 
 class ReplayBuffer(object, metaclass=abc.ABCMeta):
@@ -43,6 +44,8 @@ class ReplayBuffer(object, metaclass=abc.ABCMeta):
 
         :param path: Dict like one outputted by rlkit.samplers.util.rollout
         """
+        # print(path["rewards"].mean())
+        # print(np.median(path["rewards"]))
         for (
             i,
             (obs, action, explored, reward, next_obs, terminal, agent_info, env_info),
@@ -91,4 +94,3 @@ class ReplayBuffer(object, metaclass=abc.ABCMeta):
 
     def end_epoch(self, epoch):
         return
-
