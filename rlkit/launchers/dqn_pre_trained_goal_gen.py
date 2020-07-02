@@ -108,8 +108,9 @@ def experiment(variant):
     expl_collect = CraftController(loaded_collect_policy, n=GRID_SIZE)
 
     # other
-    filepath = "/home/achester/anaconda3/envs/goal-gen/.guild/runs/cf5c31afe0724acd8f6398d77a80443e/data/params.pkl"  # other
-    # filepath = "/home/achester/Documents/symbolic-goal-generation/data/params.pkl"
+    # filepath = "/home/achester/anaconda3/envs/goal-gen/.guild/runs/cf5c31afe0724acd8f6398d77a80443e/data/params.pkl"  # other (RC 28)
+    filepath = "/home/achester/anaconda3/envs/goal-gen/.guild/runs/4989f4bcbadb4ac58c3668c068d63225/data/params.pkl"  # other (RC 55)
+    # filepath = "/home/achester/Documents/misc/craft-model/params.pkl"
     with (open(filepath, "rb")) as openfile:
         while True:
             try:
