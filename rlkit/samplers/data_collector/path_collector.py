@@ -279,14 +279,15 @@ class IntermediatePathCollector(MdpPathCollector):
                 and discard_incomplete_paths
             ):
                 break
+
+            self._epoch_episodes += path["terminals"].sum()
+            self._num_episodes += path["terminals"].sum()
             converted_path = self.extract_intermediate_experience(path, path_len)
             path_len = len(converted_path["actions"])
             num_steps_collected += path_len
             paths.append(converted_path)
         self._num_paths_total += len(paths)
         self._num_steps_total += num_steps_collected
-        self._epoch_episodes += sum([p["terminals"].sum() for p in paths])
-        self._num_episodes += sum([p["terminals"].sum() for p in paths])
         self._epoch_paths.extend(paths)
         return paths
 
