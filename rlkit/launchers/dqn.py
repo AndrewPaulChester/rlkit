@@ -11,6 +11,7 @@ from rlkit.exploration_strategies.epsilon_greedy import (
 from rlkit.policies.argmax import ArgmaxDiscretePolicy
 from rlkit.policies.softmax import SoftmaxDiscretePolicy
 from rlkit.torch.dqn.dqn import DQNTrainer
+from rlkit.torch.dqn.double_dqn import DoubleDQNTrainer
 from rlkit.launchers import common
 from rlkit.torch.networks import Mlp
 from rlkit.torch.conv_networks import CNN
@@ -79,20 +80,46 @@ def experiment(variant):
         channels,
         fc_input,
     ) = common.get_spaces(expl_env)
+    channels, obs_width, obs_height = obs_shape
 
-    qf = Mlp(
-        input_size=n,
+    # qf = Mlp(
+    #     input_size=n,
+    #     output_size=action_space.n,
+    #     hidden_sizes=[256, 256],
+    #     init_w=variant["init_w"],
+    #     b_init_value=variant["b_init_value"],
+    # )
+    # target_qf = Mlp(
+    #     input_size=n,
+    #     output_size=action_space.n,
+    #     hidden_sizes=[256, 256],
+    #     init_w=variant["init_w"],
+    #     b_init_value=variant["b_init_value"],
+    # )
+
+    qf = CNN(
+        input_width=obs_width,
+        input_height=obs_height,
+        input_channels=channels,
         output_size=action_space.n,
-        hidden_sizes=[256, 256],
-        init_w=variant["init_w"],
-        b_init_value=variant["b_init_value"],
+        added_fc_input_size=fc_input,
+        kernel_sizes=[8, 4, 3],
+        n_channels=[32, 64, 32],
+        strides=[4, 2, 1],
+        paddings=[0, 0, 0],
+        hidden_sizes=[512],
     )
-    target_qf = Mlp(
-        input_size=n,
+    target_qf = CNN(
+        input_width=obs_width,
+        input_height=obs_height,
+        input_channels=channels,
         output_size=action_space.n,
-        hidden_sizes=[256, 256],
-        init_w=variant["init_w"],
-        b_init_value=variant["b_init_value"],
+        added_fc_input_size=fc_input,
+        kernel_sizes=[8, 4, 3],
+        n_channels=[32, 64, 32],
+        strides=[4, 2, 1],
+        paddings=[0, 0, 0],
+        hidden_sizes=[512],
     )
 
     qf_criterion = nn.MSELoss()
@@ -112,12 +139,22 @@ def experiment(variant):
     expl_path_collector = MdpPathCollector(
         expl_env, expl_policy, render=variant["render"]
     )
-    trainer = DQNTrainer(
-        qf=qf,
-        target_qf=target_qf,
-        qf_criterion=qf_criterion,
-        **variant["trainer_kwargs"]
-    )
+
+    if variant["double_dqn"]:
+        trainer = DoubleDQNTrainer(
+            qf=qf,
+            target_qf=target_qf,
+            qf_criterion=qf_criterion,
+            **variant["trainer_kwargs"]
+        )
+    else:
+        trainer = DQNTrainer(
+            qf=qf,
+            target_qf=target_qf,
+            qf_criterion=qf_criterion,
+            **variant["trainer_kwargs"]
+        )
+
     replay_buffer = EnvReplayBuffer(variant["replay_buffer_size"], expl_env)
     algorithm = TorchBatchRLAlgorithm(
         trainer=trainer,

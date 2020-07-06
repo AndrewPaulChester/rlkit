@@ -1,6 +1,10 @@
 import numpy as np
 from gym_craft.utils.representations import json_to_screen
 
+import torch
+
+import rlkit.torch.pytorch_util as ptu
+
 
 def multitask_rollout(
     env,
@@ -99,6 +103,7 @@ def rollout(env, agent, max_path_length=np.inf, render=False, render_kwargs=None
     agent_infos = []
     env_infos = []
     o = env.reset()
+    o = _flatten_tuple(_convert_to_torch(o, env))
     agent.reset()
     next_o = None
     path_length = 0
@@ -107,6 +112,7 @@ def rollout(env, agent, max_path_length=np.inf, render=False, render_kwargs=None
     while path_length < max_path_length:
         (a, e), agent_info = agent.get_action(o)
         next_o, r, d, env_info = env.step(a)
+        next_o = _flatten_tuple(_convert_to_torch(next_o, env))
         observations.append(o)
         rewards.append(r)
         terminals.append(d)
@@ -144,6 +150,17 @@ def rollout(env, agent, max_path_length=np.inf, render=False, render_kwargs=None
         agent_infos=agent_infos,
         env_infos=env_infos,
     )
+
+
+def _flatten_tuple(observation):
+    """Assumes observation is a tuple of tensors. converts ((n,c, h, w),(n, x)) -> (n,c*h*w+x)"""
+    image, fc = observation
+    flat = image.flatten()
+    return np.concatenate([flat, fc])
+
+
+def _convert_to_torch(raw_obs, env):
+    return env.observation_space.converter(raw_obs)
 
 
 def intermediate_rollout(

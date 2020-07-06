@@ -43,7 +43,7 @@ from a2c_ppo_acktr import distributions
 
 from gym_agent.learn_plan_policy import LearnPlanPolicy
 from gym_agent.controller import CraftController, PretrainedController
-from gym_agent.planner import ENHSPPlanner
+from gym_agent.planner import ENHSPPlanner, DummyHierarchicalPlanner
 
 
 def experiment(variant):
@@ -55,7 +55,14 @@ def experiment(variant):
     expl_env = gym.make(variant["env_name"], seed=5)
     eval_env = gym.make(variant["env_name"], seed=5)
 
-    ANCILLARY_GOAL_SIZE = 16
+    if variant["action_space"] == "planner":
+        ancillary_goal_size = 16
+        planner = ENHSPPlanner()
+    elif variant["action_space"] == "skills":
+        ancillary_goal_size = 14
+        planner = DummyHierarchicalPlanner()
+
+    ANCILLARY_GOAL_SIZE = ancillary_goal_size
     SYMBOLIC_ACTION_SIZE = (
         12
     )  # Size of embedding (ufva/multihead) for goal space direction to controller
@@ -90,8 +97,6 @@ def experiment(variant):
         init_w=variant["init_w"],
         b_init_value=variant["b_init_value"],
     )
-
-    planner = ENHSPPlanner()
 
     # collect
     filepath = "/home/achester/anaconda3/envs/goal-gen/.guild/runs/e77c75eed02e4b38a0a308789fbfcbd8/data/params.pkl"  # collect

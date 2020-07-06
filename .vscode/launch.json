@@ -102,6 +102,52 @@
                 // "4"
 
             ]
+        },     {
+            "name": "Python: dqn skills",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "--env-name",
+                "zoomed-binary-train-craft-v2",
+                //"--render",
+                "--num-steps",
+                "2000",
+                "--anneal-schedule",
+                "200",
+                "--epochs",
+                "1000"
+                // "--experience-interval",
+                // "5"
+                // "--seed",
+                // "4"
+
+            ]
+        },     {
+            "name": "Python: dqn hierarchical",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "--env-name",
+                "hierarchical-abstract-rooms-craft-v2",
+                "--render",
+                "--num-steps",
+                "2000",
+                "--anneal-schedule",
+                "200",
+                "--epochs",
+                "1000",
+                "--experience-interval",
+                "3",
+                "--action-space",
+                "skills",
+                // "--seed",
+                // "4"
+
+            ]
         }, 
         {
             "name": "Python: Current File (box-taxi)",

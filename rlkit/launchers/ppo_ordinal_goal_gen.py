@@ -87,7 +87,8 @@ def experiment(variant):
         vectorised=True,
         controller=controller,
         planner=planner,
-        env=function_env
+        env=function_env,
+        true_parallel=True
         # json_to_screen=expl_envs.observation_space.converter,
     )
     expl_policy = LearnPlanPolicy(
@@ -105,7 +106,8 @@ def experiment(variant):
         vectorised=True,
         controller=controller,
         planner=planner,
-        env=function_env
+        env=function_env,
+        true_parallel=True
         # json_to_screen=expl_envs.observation_space.converter,
     )
 
