@@ -135,15 +135,19 @@ def experiment(variant):
 
     qf_criterion = nn.MSELoss()
     if variant["softmax"]:
+        expl_learner = SoftmaxDiscretePolicy(qf, variant["temperature"])
         eval_learner = SoftmaxDiscretePolicy(qf, variant["temperature"])
     else:
-        eval_learner = ArgmaxDiscretePolicy(qf)
+        expl_learner = ArgmaxDiscretePolicy(qf)
+        eval_learner = PolicyWrappedWithExplorationStrategy(
+            EpsilonGreedy(symbolic_action_space, 0.05), ArgmaxDiscretePolicy(qf)
+        )
 
     expl_learner = PolicyWrappedWithExplorationStrategy(
         LinearEpsilonGreedy(
             symbolic_action_space, anneal_schedule=variant["anneal_schedule"]
         ),
-        eval_learner,
+        expl_learner,
     )
 
     eval_policy = LearnPlanPolicy(

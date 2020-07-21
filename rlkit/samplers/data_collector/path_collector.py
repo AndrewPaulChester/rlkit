@@ -273,12 +273,12 @@ class IntermediatePathCollector(MdpPathCollector):
                 experience_interval=self.experience_interval,
             )
             path_len = len(path["actions"])
-            if (
-                path_len != max_path_length
-                and not path["terminals"][-1]
-                and discard_incomplete_paths
-            ):
-                break
+            # if (
+            #     path_len != max_path_length
+            #     and not path["terminals"][-1]
+            #     and discard_incomplete_paths
+            # ):
+            #     break
 
             self._epoch_episodes += path["terminals"].sum()
             self._num_episodes += path["terminals"].sum()
