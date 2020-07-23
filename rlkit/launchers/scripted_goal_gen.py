@@ -36,6 +36,8 @@ from a2c_ppo_acktr import distributions
 from a2c_ppo_acktr import distributions
 
 from gym_agent.learn_plan_policy import LearnPlanPolicy
+from gym_agent.controller import TaxiController
+from gym_agent.planner import FDPlanner
 
 
 class ScriptedPolicy(nn.Module, Policy):
@@ -55,20 +57,20 @@ class ScriptedPolicy(nn.Module, Policy):
                 "passenger": None,
                 "location": [0, 0] if self.always_return else None,
             }
-        else:  # obs["taxi"]["location"] != [0, 0]:
-            action = {
-                "delivered": None,
-                "empty": False,
-                "passenger": None,
-                "location": [0, 0],
-            }
-        # else:
+        # else:  # obs["taxi"]["location"] != [0, 0]:
         #     action = {
         #         "delivered": None,
         #         "empty": False,
         #         "passenger": None,
-        #         "location": None,
+        #         "location": [0, 0],
         #     }
+        else:
+            action = {
+                "delivered": None,
+                "empty": False,
+                "passenger": None,
+                "location": None,
+            }
         return (
             (action, torch.zeros(1, 1)),
             {
@@ -134,17 +136,27 @@ def experiment(variant):
         (bernoulli_dist, continuous_dist, passenger_dist, delivered_dist)
     )
 
+    planner = FDPlanner()
+    controller = TaxiController()
+    function_env = gym.make(variant["env_name"])
+
     eval_policy = LearnPlanPolicy(
         ScriptedPolicy(qf, variant["always_return"]),
         num_processes=variant["num_processes"],
         vectorised=True,
-        json_to_screen=expl_envs.observation_space.converter,
+        controller=controller,
+        planner=planner,
+        env=function_env,
+        true_parallel=True,
     )
     expl_policy = LearnPlanPolicy(
         ScriptedPolicy(qf, variant["always_return"]),
         num_processes=variant["num_processes"],
         vectorised=True,
-        json_to_screen=expl_envs.observation_space.converter,
+        controller=controller,
+        planner=planner,
+        env=function_env,
+        true_parallel=True,
     )
 
     eval_path_collector = HierarchicalStepCollector(
@@ -196,4 +208,3 @@ def experiment(variant):
     algorithm.to(ptu.device)
     # missing: device back in sync
     algorithm.evaluate()
-
