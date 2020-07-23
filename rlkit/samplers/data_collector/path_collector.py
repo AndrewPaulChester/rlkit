@@ -140,12 +140,14 @@ class MdpPathCollector(PathCollector):
     def get_epoch_paths(self):
         return self._epoch_paths
 
-    def end_epoch(self, epoch):
+    def end_epoch(self, epoch, hard_reset=False):
         self._epoch_score = 0
         self._epoch_episodes = 0
         self._plan_lengths = defaultdict(list)
 
         self._epoch_paths = deque(maxlen=self._max_num_epoch_paths_saved)
+        if hard_reset:
+            self._env.reset()
         try:
             self._policy.learner.es.anneal_epsilon()
         except AttributeError:

@@ -41,7 +41,7 @@ def create_environments(variant):
         1,
         variant["log_dir"],
         ptu.device,
-        False,
+        True,  # allow_early resets
         1,
         pytorch=False,
     )

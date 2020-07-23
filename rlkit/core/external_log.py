@@ -46,6 +46,7 @@ class LogPathCollector(MdpPathCollector):
             render,
             render_kwargs,
         )
+
         self.actions = [[] for _ in range(num_processes)]
         self.explored = [[] for _ in range(num_processes)]
         self.rewards = [[] for _ in range(num_processes)]
@@ -110,6 +111,17 @@ class LogPathCollector(MdpPathCollector):
             self._num_paths_total += len(paths)
             self._num_steps_total += sum([len(p) for p in paths])
 
+    def end_epoch(self, epoch, hard_reset=False):
+        if hard_reset:
+            n = len(self.actions)
+            self.actions = [[] for _ in range(n)]
+            self.explored = [[] for _ in range(n)]
+            self.rewards = [[] for _ in range(n)]
+            self.values = [[] for _ in range(n)]
+            self.probs = [[] for _ in range(n)]
+            self.ai = [[] for _ in range(n)]
+        return super().end_epoch(epoch, hard_reset)
+
 
 class LogRLAlgorithm(BaseRLAlgorithm):
     def __init__(self, exploration_env=None, evaluation_env=None, num_processes=1):
@@ -135,4 +147,3 @@ class LogRLAlgorithm(BaseRLAlgorithm):
 
     def training_mode(self, mode):
         pass
-
