@@ -59,7 +59,7 @@ def experiment(variant):
         action_space,
         ptu.device,
         base=base,
-        deterministic=True,
+        deterministic=False,
         dist=dist,
         num_processes=variant["num_processes"],
         obs_space=obs_space,
