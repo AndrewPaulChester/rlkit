@@ -122,6 +122,7 @@ def experiment(variant):
         render=variant["render"],
         gamma=1,
         no_plan_penalty=True,
+        naive_discounting=True,
     )
     expl_path_collector = HierarchicalStepCollector(
         expl_envs,
@@ -132,6 +133,7 @@ def experiment(variant):
         render=variant["render"],
         gamma=variant["trainer_kwargs"]["gamma"],
         no_plan_penalty=variant.get("no_plan_penalty", False),
+        naive_discounting=variant["naive_discounting"],
     )
     # added: created rollout(5,1,(4,84,84),Discrete(6),1), reset env and added obs to rollout[step]
 
