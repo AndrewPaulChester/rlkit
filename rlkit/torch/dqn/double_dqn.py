@@ -15,7 +15,7 @@ class DoubleDQNTrainer(DQNTrainer):
         next_obs = batch["next_observations"]
         try:
             plan_lengths = batch["plan_lengths"]
-            if self.single_plan_discounting:
+            if self.naive_discounting:
                 plan_lengths = torch.ones_like(plan_lengths)
         except KeyError as e:
             plan_lengths = torch.ones_like(rewards)

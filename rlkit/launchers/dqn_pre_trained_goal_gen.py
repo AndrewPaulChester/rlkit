@@ -174,7 +174,7 @@ def experiment(variant):
         rollout=intermediate_rollout,
         gamma=1,
         render=variant["render"],
-        single_plan_discounting=variant["trainer_kwargs"]["single_plan_discounting"],
+        naive_discounting=variant["trainer_kwargs"]["naive_discounting"],
         experience_interval=variant["experience_interval"],
     )
     expl_path_collector = IntermediatePathCollector(
@@ -183,7 +183,7 @@ def experiment(variant):
         rollout=intermediate_rollout,
         gamma=variant["trainer_kwargs"]["discount"],
         render=variant["render"],
-        single_plan_discounting=variant["trainer_kwargs"]["single_plan_discounting"],
+        naive_discounting=variant["trainer_kwargs"]["naive_discounting"],
         experience_interval=variant["experience_interval"],
     )
 

@@ -224,7 +224,7 @@ class IntermediatePathCollector(MdpPathCollector):
         render_kwargs=None,
         rollout=rollout_functions.rollout,
         gamma=0.99,
-        single_plan_discounting=False,
+        naive_discounting=False,
         experience_interval=1,
     ):
         if render_kwargs is None:
@@ -237,7 +237,7 @@ class IntermediatePathCollector(MdpPathCollector):
         self._render_kwargs = render_kwargs
         self._rollout = rollout
         self.gamma = gamma
-        self.single_plan_discounting = single_plan_discounting
+        self.naive_discounting = naive_discounting
         self.experience_interval = experience_interval
 
         self._num_steps_total = 0
@@ -313,7 +313,7 @@ class IntermediatePathCollector(MdpPathCollector):
 
         acc_reward = 0
         for i, r in enumerate(reversed(path["rewards"])):
-            if not self.single_plan_discounting:
+            if not self.naive_discounting:
                 acc_reward *= self.gamma
             acc_reward += r
             self._total_score += r.item()
@@ -380,10 +380,14 @@ class IntermediatePathCollector(MdpPathCollector):
         )
         return stats
 
-    def end_epoch(self, epoch):
+    def end_epoch(self, epoch, hard_reset=False):
         self._epoch_paths = deque(maxlen=self._max_num_epoch_paths_saved)
         self._epoch_score = 0
         self._epoch_episodes = 0
+
+        if hard_reset:
+            self._env.reset()
+
         try:
             self._policy.learner.es.anneal_epsilon()
         except AttributeError:

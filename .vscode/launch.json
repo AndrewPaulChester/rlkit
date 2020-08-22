@@ -48,12 +48,13 @@
                 // "50",
                 "--anneal-schedule",
                 "5",
+                "--naive-discounting",
                 // "--experience-interval",
                 // "5"
                 // "--seed",
                 // "4"
-                "--eval-steps",
-                "2000",
+                // "--eval-steps",
+                // "2000",
 
             ]
         }, 
@@ -69,7 +70,7 @@
                 // "--render",
                 "--num-steps",
                 "2000",
-                "--single-plan-discounting",
+                "--naive-discounting",
                 "--discount-rate",
                 "0.95",
                 "--init-w",

@@ -22,7 +22,7 @@ class DQNTrainer(TorchTrainer):
         discount=0.99,
         reward_scale=1.0,
         adam_eps=1e-5,
-        single_plan_discounting=False,
+        naive_discounting=False,
         huber_loss=False,
     ):
         super().__init__()
@@ -40,7 +40,7 @@ class DQNTrainer(TorchTrainer):
         self.eval_statistics = OrderedDict()
         self._n_train_steps_total = 0
         self._need_to_update_eval_statistics = True
-        self.single_plan_discounting = single_plan_discounting
+        self.naive_discounting = naive_discounting
         self.huber_loss = huber_loss
 
     def train_from_torch(self, batch):
@@ -51,7 +51,7 @@ class DQNTrainer(TorchTrainer):
         next_obs = batch["next_observations"]
         try:
             plan_lengths = batch["plan_lengths"]
-            if self.single_plan_discounting:
+            if self.naive_discounting:
                 plan_lengths = torch.ones_like(plan_lengths)
         except KeyError as e:
             plan_lengths = torch.ones_like(rewards)
